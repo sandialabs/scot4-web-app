@@ -126,8 +126,6 @@ router.beforeEach(async (to, _from, next) => {
                         store.dispatch('user/connectToFirehose', { 'reconnect': true })
                     }
                 }, 10000)
-                const matomoId = store.getters['user/currentUser'].email
-                window._paq.push(['setUserId', matomoId])
                 next() 
             }
             else {
