@@ -13,9 +13,11 @@ export const state: UserState = {
     user: undefined,
     userApiKeys: [],
     firehose: undefined,
+    firehoseReconnectTask: undefined,
     showQuickSettings: false,
-    searchResults:undefined,
-    showSearchOverlay:false,
+    searchResults: undefined,
+    showSearchOverlay: false,
+    notificationsRemaining: 0
 };
 
 const namespaced: boolean = true;

@@ -96,15 +96,46 @@ export const mutations: MutationTree<UserState> = {
         state.searchResults = undefined
     },
 
-
-
     changeShowSearchOverlay(state, payload:boolean){
         state.showSearchOverlay = payload
     },
 
+    setNotificationAcked(state, notification_id: number) {
+        if (state.user) {
+            if (!state.user.notifications) {
+                Vue.set(state.user, "notifications", [])
+            }
+            const notificationIndex = state.user.notifications.findIndex((el: any) => el.id == notification_id)
+            if (notificationIndex != -1) {
+                state.user.notifications[notificationIndex].ack = true
+            }
+        }
+    },
+
     retrieveNotificationsSuccess(state, payload:any){
-        if (state.user){
-            Vue.set(state.user, "notifications", payload.result)
+        if (state.user) {
+            if (!state.user.notifications) {
+                Vue.set(state.user, "notifications", [])
+            }
+            for (const notification of payload.result) {
+                const notificationIndex = state.user.notifications.findIndex((el: any) => el.id == notification.id)
+                if (notificationIndex != -1) {
+                    Object.assign(state.user.notifications[notificationIndex], notification)
+                }
+                else {
+                    state.user.notifications.push(notification)
+                }
+            }
+        }
+    },
+
+    ackNotificationsSuccess(state, payload: Array<number>) {
+        if (state.user) {
+            for (const notification of state.user.notifications) {
+                if (payload.includes(notification.id)) {
+                    notification.ack = true
+                }
+            }
         }
     }
 };

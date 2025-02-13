@@ -1,5 +1,5 @@
 <template>
-    <v-data-table :headers="vuetifyQueueTableColumns"
+    <v-data-table :headers="showPopularity ? vuetifyQueueTableColumns : vuetifyQueueTableColumns?.filter(a => a.value != 'popularity_count')"
                   :items="vuetifyQueueTableRows"
                   :single-select=true
                   :fixed-header=true
@@ -23,7 +23,8 @@
             <tbody>
                 <tr>
                     <td v-for="header in headers" :key="elementType + header.text" class="filter-cell">
-                        <v-autocomplete v-if="header.value == 'status' || header.value == 'task_status'"
+                        <div v-if="header.value == 'popularity_count'"></div>
+                        <v-autocomplete v-else-if="header.value == 'status' || header.value == 'task_status'"
                                         class="status-filter"
                                         dense hide-details chips clearable
                                         :items="statusChoices()"
@@ -201,6 +202,9 @@
                         <span :id="elementType + rowIndex + 'ID'" v-else-if="header.value == 'id'">
                             {{ item[header.value] }}
                         </span>
+                        <span :id="elementType + rowIndex + 'Popularity'" v-else-if="header.value == 'popularity_count'">
+                            <PopularityElement :voted="item['popularity_voted']" :count="item[header.value]" :elementID="item['id']" :elementType="elementType"/>
+                        </span>
                         <span v-else>
                             {{ item[header.value] }}
                         </span>
@@ -244,11 +248,13 @@ import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
 import { Getter, Action, Mutation } from 'vuex-class';
 import { IRElementType, IRElement, IRElementStatus } from '@/store/modules/IRElements/types'
 import { User } from '@/store/modules/user/types';
+import PopularityElement from '../IRElementComponents/PopularityElement.vue';
 
 const namespace: string = 'IRElements';
 
 @Component({
     components: {
+        PopularityElement
     },
 })
 
@@ -279,6 +285,7 @@ export default class VuetifyQueueTable extends Vue {
     @Getter('selectedElement', { namespace }) selectedElement: IRElement | null;
     @Getter('selectedElementPaneSize', { namespace }) selectedElementPaneSize: number;
     @Getter('elementListFilterIsDefault', { namespace }) elementListFilterIsDefault: boolean;
+    @Getter('showPopularity', { 'namespace': 'user' }) showPopularity: boolean
 
     @Action('retrieveSelectedElementbyID', { namespace }) retrieveSelectedElementbyID: any;
     @Action('retrieveElementListWithFilter', { namespace }) retrieveElementListWithFilter: CallableFunction;
@@ -303,6 +310,7 @@ export default class VuetifyQueueTable extends Vue {
     createdDateRange: Array<string> = []
     modifiedDateRange: Array<string> = []
     filterText: string | null = null // Only used to clear filter text
+    computedHeaders: any[] | null | undefined = []
 
     async mounted() {
         this.tagFilterOptions = await this.retrieveTags({ limit: 25 })

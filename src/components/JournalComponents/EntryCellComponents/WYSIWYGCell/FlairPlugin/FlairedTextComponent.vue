@@ -53,7 +53,7 @@ export default class FlairedTextComponent extends Vue{
             // Special handling of flair
             if (this.entitiesLoaded && nodeName.toUpperCase() == "SPAN" && nodeAttributes.class?.replace('\\"', '').startsWith("entity")) {
                 let nodeType = nodeAttributes["data-entity-type"]
-                let nodeValue = nodeAttributes["data-entity-value"].toLowerCase()
+                let nodeValue = nodeAttributes["data-entity-value"]?.toLowerCase()
                 // Also remove slashes and quotes if necessary for compatibility with old SCOT data
                 if (nodeType && nodeValue &&
                         (!(nodeType in this.selectedElementEntities) || !this.selectedElementEntities[nodeType][nodeValue])) {

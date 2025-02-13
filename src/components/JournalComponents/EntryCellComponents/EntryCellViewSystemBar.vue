@@ -15,7 +15,15 @@
         </v-chip>
         <NewEntityMenu v-if="selectedText" :buttonVisible="textSelected" :entityText="selectedText" :entryId="entryId" />
         <v-spacer></v-spacer>
-
+        <v-btn class="py-1 px-1" icon @click="subscribeItem" v-bind="attrs" v-on="on" title="Subscribe to notifications for this entry">
+            <v-icon v-if="entryById(entryId, treePath, linkedElementId, linkedElementIndex, linkedElementType).subscribed" color="blue">mdi-bell</v-icon>
+            <v-icon v-else color="blue">mdi-bell-outline</v-icon>
+        </v-btn>
+        <v-btn class="py-1 px-1" icon @click="favoriteItem" v-bind="attrs" v-on="on" title="Favorite this entry">
+            <v-icon v-if="entryById(entryId, treePath, linkedElementId, linkedElementIndex, linkedElementType).favorite" :color="entryClass == 'task' && entryData.status != 'closed' ? 'black' : 'red'">mdi-heart</v-icon>
+            <v-icon v-else :color="entryClass == 'task' && entryData.status != 'closed' ? 'black' : 'red'">mdi-heart-outline</v-icon>
+        </v-btn>
+        <PopularityElement :voted="entryById(entryId, treePath, linkedElementId, linkedElementIndex, linkedElementType).popularity_voted" :count="entryById(entryId, treePath, linkedElementId, linkedElementIndex, linkedElementType).popularity_count" :entry="{entryId: this.entryId, treePath: this.treePath, linkedElementId: this.linkedElementId, linkedElementIndex: this.linkedElementIndex, linkedElementType: this.linkedElementType}"></PopularityElement>
         <TLPPicker :value="entryTLP" @input="tlpPickerInput"></TLPPicker>
         <v-icon @click="editClicked" v-if="entryClass != 'promotion'">mdi-circle-edit-outline </v-icon>
         <v-icon @click="addChildEntry" v-if="!fullScreenMode">mdi-reply-outline</v-icon>
@@ -67,7 +75,6 @@
         </v-menu>
         <v-icon v-if="fullScreenMode!=true" @click="expandToFullScreen">mdi-arrow-expand</v-icon>
         <v-icon v-else @click="collapseFromFullScreen">mdi-arrow-collapse</v-icon>
-
     </v-system-bar>
 </template>
 
@@ -77,16 +84,17 @@ import 'splitpanes/dist/splitpanes.css'
 import { Getter, Action } from 'vuex-class';
 import { IRElement, IRElementType, EntryClassEnum, TLPCode } from '@/store/modules/IRElements/types'
 import TLPPicker from '@/components/IRElementComponents/TLPPicker.vue';
+import PopularityElement from '@/components/IRElementComponents/PopularityElement.vue';
 import {User} from '@/store/modules/user/types'
-
 import NewEntityMenu from '@/components/IRElementComponents/NewEntityMenu.vue';
+
 const namespace: string = 'IRElements';
 
 @Component({
     components: {
         TLPPicker,
-        NewEntityMenu
-        
+        NewEntityMenu,
+        PopularityElement
     },
 })
 
@@ -110,6 +118,9 @@ export default class EntryCellViewSystemBar extends Vue {
     @Getter('elementTypePluralized', { namespace }) elementTypePluralized: string | null;
     @Action('updateEntryAttributes', { namespace }) updateEntryAttributes: CallableFunction;
     @Action('reflairSelectedElementbyID', { namespace }) reflairSelectedElementbyID: CallableFunction
+    @Action('favoriteElement', { namespace }) favoriteElement: CallableFunction;
+    @Action('subscribeElement', { namespace }) subscribeElement: CallableFunction;
+    @Action('unsubscribeElement', { namespace }) unsubscribeElement: CallableFunction;
 
     selectedText: string = ""
     textSelected: boolean = false
@@ -120,6 +131,22 @@ export default class EntryCellViewSystemBar extends Vue {
 
     async beforeDestroy() {
         document.removeEventListener("selectionchange", this.onSelectionChange)
+    }
+
+    async favoriteItem() {
+        if (this.selectedElement) {
+            await this.favoriteElement({elementID: this.entryId, elementType: IRElementType.Entry, treePath: this.treePath, linkedElementType: this.linkedElementType, linkedElementIndex: this.linkedElementIndex})
+        }
+    }
+
+    async subscribeItem() {
+        const entry = this.entryById(this.entryId, this.treePath, this.linkedElementId, this.linkedElementIndex, this.linkedElementType)
+        if (!entry.subscribed) {
+            await this.subscribeElement({ elementID: this.entryId, elementType: IRElementType.Entry, treePath: this.treePath, linkedElementType: this.linkedElementType, linkedElementIndex: this.linkedElementIndex })
+        }
+        else {
+            await this.unsubscribeElement({ elementID: this.entryId, elementType: IRElementType.Entry, treePath: this.treePath, linkedElementType: this.linkedElementType, linkedElementIndex: this.linkedElementIndex })
+        }
     }
 
     transformDateString(dateString: string) {

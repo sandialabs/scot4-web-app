@@ -32,3 +32,12 @@ export interface Audit {
     audit_data_ver: string | null,
     audit_data: any
 }
+
+export interface Popularity {
+    id: number,
+    target_type: string,
+    target_id: number,
+    metric_type: string,
+    created: Date,
+    modified: Date,
+}

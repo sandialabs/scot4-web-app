@@ -119,6 +119,7 @@ export const mutations: MutationTree<IRElementsListState> = {
     },
 
     addFlairedEntityAppearancesSuccess(state, payload: any) {
+        const itemOrdering = ["event", "intel", "alert", "dispatch", "product", "incident", "vuln_track", "vuln_feed", "signature"]
         const flairIndex = state.SelectedElementEntities.findIndex((el: any) => el.id == payload.entity?.id)
         if (flairIndex != -1) {
             const check = state.SelectedElementFlairedEntities.findIndex((el: any) => el.id == state.SelectedElementEntities[flairIndex].id)
@@ -126,11 +127,19 @@ export const mutations: MutationTree<IRElementsListState> = {
                 state.SelectedElementFlairedEntities.push(state.SelectedElementEntities[flairIndex])
             }
             const appearances = []
+            // These items get put in first in sorted order
+            for (const item of itemOrdering) {
+                const itemKey = item + "_appearances"
+                if (itemKey in payload.entityAppearances) {
+                    appearances.push(...payload.entityAppearances[itemKey])
+                    delete payload.entityAppearances[itemKey]
+                }
+            }
+            // All other items (if they exist) are put into the list in whatever order
             for (const appearance in payload.entityAppearances) {
                 appearances.push(...payload.entityAppearances[appearance])
             }
             Vue.set(state.SelectedElementEntities[flairIndex], "appearances", appearances)
-
         }
     },
 
@@ -383,8 +392,6 @@ export const mutations: MutationTree<IRElementsListState> = {
             const entry = findLinkedElementEntry(payload.treePath, state, entryId, payload.linkedElementType, payload.linkedElementIndex)
             Vue.set(entry, 'editMode', true)
         }
-
-
     },
 
     toggleExpandEntry(state, payload: any) {
@@ -645,6 +652,8 @@ export const mutations: MutationTree<IRElementsListState> = {
                 'entry_data': payload.entry_data,
                 'parsed': false,
                 'editMode': false,
+                'favorite': false,
+                'subscribed': false
             }
             addEntry(payload.treePath, state, payload.id, newEntry)
         }
@@ -662,6 +671,8 @@ export const mutations: MutationTree<IRElementsListState> = {
                     'entry_data': payload.entry_data,
                     'parsed': false,
                     'editMode': false,
+                    'favorite': false,
+                    'subscribed': false
                 }
                 addLinkedElementEntry(payload.treePath, state, payload.id, newEntry, payload.linkedElementType, payload.linkedElementIndex)
             }
@@ -975,6 +986,55 @@ export const mutations: MutationTree<IRElementsListState> = {
                 if (indexToRemove != -1) {
                     state.SelectedElement.linkedElements[itemType0Caps as IRElementType].splice(indexToRemove, 1)
                 }
+            }
+        }
+    },
+
+    updateElementList(state, payload) {
+        //need to update the selected element? or something for entries
+        const element: IRElementMeta = payload.data
+        if (state.ElementList && element) {
+            const elementIndex = state.ElementList.findIndex(elementMeta => elementMeta.id == element.id)
+            if (elementIndex != -1) {
+                Object.assign(state.ElementList[elementIndex], element)
+            }
+        }
+        state.ElementListAbortController = null
+    },
+
+    updateElementLinkedElement(state, payload) {
+        //need to update the selected element? or something for entries
+        const entryId: number = payload.data.id
+        if (payload.linkedElementId == null && payload.linkedElementIndex == null && payload.linkedElementType == null) {
+            Object.assign(findEntry(payload.treePath, state, entryId), payload.data)
+        }
+        else {
+            Object.assign(findLinkedElementEntry(payload.treePath, state, entryId, payload.linkedElementType, payload.linkedElementIndex), payload.data)
+        }
+    },
+
+    subscribeUnsubscribeSuccess(state, payload) {
+        const elementType = convertFromSnakeCase(payload.data.target_type) as IRElementType
+        const elementId = payload.data.target_id
+        const newData = payload.newdata
+        if (state.ElementType == elementType && state.ElementList) {
+            const elementIndex = state.ElementList.findIndex((a) => a.id == elementId)
+            if (elementIndex != -1) {
+                Object.assign(state.ElementList[elementIndex], newData)
+            }
+            if (state.SelectedElement && state.SelectedElement.id == elementId) {
+                Object.assign(state.SelectedElement, newData)
+            }
+        }
+        else if (elementType == IRElementType.Entry) {
+            if (payload.linkedElementId == null && payload.linkedElementIndex == null && payload.linkedElementType == null) {
+                const entry = findEntry(payload.treePath, state, elementId)
+                if (entry) {
+                    Object.assign(entry, newData)
+                }
+            }
+            else {
+                Object.assign(findLinkedElementEntry(payload.treePath, state, elementId, payload.linkedElementType, payload.linkedElementIndex), newData)
             }
         }
     }

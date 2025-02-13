@@ -1,5 +1,6 @@
 import {AxiosStatic} from "axios"
 import { PermissionEnum } from "../store/modules/IRElements/types";
+import { UserLinksEnum } from "../store/modules/user/types";
 export default (axios: AxiosStatic) => ({
     async updateUserMe(updateData: any): Promise<any> {
         return axios({
@@ -156,20 +157,33 @@ export default (axios: AxiosStatic) => ({
         })
     },
 
-    async retrieveNotifications(): Promise<any> {
+    async retrieveNotifications(includeAcked: boolean | undefined = undefined, skip: number | undefined = undefined, limit: number | undefined = undefined): Promise<any> {
         return axios({
             url: '/notification/',
             method: 'GET',
             withCredentials: true,
+            params: { include_acked: includeAcked, skip, limit }
         })
     },
 
 
     async ackNotifications(notificationIds: Array<number>): Promise<any> {
         return axios({
-            url: '/notification/ack/',
+            url: '/notification/ack',
             method: 'POST',
             data: {notification_ids:notificationIds},
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            withCredentials: true,
+        })
+    },
+
+    async sendBroadcastNotification(message: string, priority: string, expires: Date): Promise<any> {
+        return axios({
+            url: '/notification/broadcast',
+            method: 'POST',
+            data: { message, priority, expires },
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -215,6 +229,32 @@ export default (axios: AxiosStatic) => ({
                 'Content-Type': 'application/json'
             },
             
+        })
+    },
+
+    async getFavorites(abortController?: AbortController): Promise<any> {
+        return axios({
+            url: 'user_links/',
+            method: "GET",
+            withCredentials: true,
+            params: { link_type: UserLinksEnum.favorite, limit: -1 },
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            signal: abortController?.signal
+        })
+    },
+
+    async getSubscriptions(abortController?: AbortController): Promise<any> {
+        return axios({
+            url: 'user_links/',
+            method: "GET",
+            withCredentials: true,
+            params: { link_type: UserLinksEnum.subscription, limit: -1 },
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            signal: abortController?.signal
         })
     }
 });

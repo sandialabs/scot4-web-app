@@ -22,14 +22,24 @@ export const getters: GetterTree<UserState, RootState> = {
         return state.firehose
     },
     
-    notifications(state):Array<Notification>| undefined {
-            return state.user?.notifications
+    notifications(state): Array<Notification> | undefined {
+        if (state.user?.notifications) {
+            return state.user.notifications.sort((a, b) => a.created > b.created ? -1 : 1)
+        }
+        else {
+            return []
+        }
     },
 
-    unAckdNotifications(state): number| undefined {
-        const filteredNotifications = state.user?.notifications.filter((el:any) => el.ack == false)
+    unAckdNotifications(state, getters): number| undefined {
+        const filteredNotifications = getters.notifications.filter((el:any) => el.ack == false)
         return filteredNotifications?.length
     },
+
+    notificationsRemaining(state): number {
+        return state.notificationsRemaining
+    },
+
     searchResults(state):any | undefined {
         return state.searchResults
     },
@@ -70,11 +80,41 @@ export const getters: GetterTree<UserState, RootState> = {
         }
 
     },
+
     showQuickSettings(state): boolean {
         return state.showQuickSettings
     },
 
     showSearchOverlay(state): boolean{
         return state.showSearchOverlay
+    },
+
+    showPopularity(state): boolean {
+        if (state.user && state.user.preferences != null) {
+            if ("showPopularity" in state.user.preferences) {
+                return state.user.preferences['showPopularity']
+            }
+            else {
+                return false
+            }
+        }
+        else {
+            return false
+        }
+    },
+
+    muteNotifications(state): boolean {
+        if (state.user && state.user.preferences != null) {
+            if ("muteNotifications" in state.user.preferences) {
+                return state.user.preferences['muteNotifications']
+            }
+            else {
+                return false
+            }
+        }
+        else {
+            return false
+        }
+
     }
 };

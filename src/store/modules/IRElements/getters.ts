@@ -296,7 +296,6 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
             }
             else {
                 if (state.SelectedElement != null && state.SelectedElement != undefined && state.SelectedElement.linkedElements != null && linkedElementType != null && linkedElementIndex != null) {
-
                     return findLinkedElementEntry(treePath, state, id, linkedElementType as IRElementType, linkedElementIndex as number)
                 }
             }
@@ -527,8 +526,10 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
     vuetifyQueueTableColumns(state): Array<any> | undefined {
         const statusColumnWidth = '10em'
         const idColumnWidth = '9em' // This is about 6 numeric digits in the search bar and 10 in the field itself
+        const popularityColumnWidth = '5em'
         let usernameColumnWidth = '10em'
         let sourceTagColumnWidth = '17em'
+
         if (Vuetify.framework.breakpoint.mdAndDown) {
             sourceTagColumnWidth = '8em'
             usernameColumnWidth = '9em'
@@ -538,8 +539,8 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
         }
         if (state.ElementType != null) {
             const IRElementReturnTypes: { [key in IRElementType]: any } | undefined = {
-
                 [IRElementType.Alertgroup]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "sortable": false },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "" },
@@ -548,8 +549,8 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Tags", 'value': "tags", "align": "center", "width": sourceTagColumnWidth, "sortable": false },
                     { 'text': "Views", 'value': "view_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
-
                 [IRElementType.Event]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -562,6 +563,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Views", 'value': "view_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Intel]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -573,6 +575,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Entries", 'value': "entry_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Product]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
                     { 'text': "Created", 'value': "created", "align": "center", "width": "1%" },
@@ -583,6 +586,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Entries", 'value': "entry_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Incident]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth },
                     { 'text': "Owner", 'value': "owner", "align": "center", "width": usernameColumnWidth },
@@ -593,6 +597,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Views", 'value': "view_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Dispatch]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -604,6 +609,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Entries", 'value': "entry_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Alert]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Status", 'value': "status", "align": "center" },
                     { 'text': "Subject", 'value': "subject", "align": "center" },
@@ -612,6 +618,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Tags", 'value': "tags", "align": "center" },
                 ],
                 [IRElementType.Guide]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -620,6 +627,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Created", 'value': "created", "align": "center", "width": "1%" },
                 ],
                 [IRElementType.Signature]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Name", 'value': "name", "align": "center", "width": "12%" },
                     { 'text': "Type", 'value': "type", "align": "center", "width": "12em" },
@@ -632,6 +640,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Tags", 'value': "tags", "align": "center", "width": sourceTagColumnWidth, "sortable": false },
                 ],
                 [IRElementType.ThreatModelItem]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center" },
                     { 'text': "Status", 'value': "status", "align": "center" },
                     { 'text': "Subject", 'value': "subject", "align": "center" },
@@ -640,6 +649,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Tags", 'value': "tags", "align": "center" },
                 ],
                 [IRElementType.Link]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center" },
                     { 'text': "Status", 'value': "status", "align": "center" },
                     { 'text': "Subject", 'value': "subject", "align": "center" },
@@ -648,6 +658,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Tags", 'value': "tags", "align": "center" },
                 ],
                 [IRElementType.Entity]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Entity Name", 'value': "value", "align": "center" },
                     { 'text': "Entity Type", 'value': "type_name", "align": "center", "width": "15em" },
@@ -659,6 +670,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                 ],
                 // This is for tasks
                 [IRElementType.Entry]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Subject", 'value': "parent_subject", "align": "center", "width": "", "class": "text-no-wrap" },
                     { 'text': "Type", 'value': "target_type", "align": "center", "width": "12em" },
@@ -669,13 +681,16 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Updated", 'value': "modified", "align": "center", "width": "1%" },
                 ],
                 [IRElementType.File]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'title': "ID", 'field': "id", "headerFilter": "input", "formatter": "textarea" },
                     { 'title': "File Name", 'field': "filename", "headerFilter": "input", "formatter": "textarea" },
+                    { 'title': "Description", 'field': "description", "headerFilter": "input", "formatter": "textarea" },
                     { 'title': "Created", 'field': "created", "headerFilter": "input", "formatter": "textarea" },
                     { 'title': "Sources", 'field': "sources", "headerFilter": "input", "formatter": "textarea" },
                     { 'title': "Tags", 'field': "tags", "headerFilter": "input", "formatter": "textarea" },
                 ],
                 [IRElementType.Feed]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth },
                     { 'text': "Name", 'value': "name", "align": "center", "width": "15em" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth },
@@ -688,12 +703,14 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Promotions", 'value': "promotions_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.Pivot]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Title", 'value': "title", "align": "center", "width": "", "class": "text-no-wrap" },
                     { 'text': "Created", 'value': "created", "align": "center", "width": "1%" },
                     { 'text': "Updated", 'value': "modified", "align": "center", "width": "1%" },
                 ],
                 [IRElementType.EntityClass]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Name", 'value': "display_name", "align": "center", "width": "15%", "class": "text-no-wrap" },
                     { 'text': "Description", 'value': "description", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -702,6 +719,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Updated", 'value': "modified", "align": "center", "width": "1%" },
                 ],
                 [IRElementType.VulnFeed]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -714,6 +732,7 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Views", 'value': "view_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ],
                 [IRElementType.VulnTrack]: [
+                    { 'text': "", 'value': "popularity_count", "align": "center", "width": popularityColumnWidth, "class": "text-no-wrap" },
                     { 'text': "ID", 'value': "id", "align": "center", "width": idColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Status", 'value': "status", "align": "center", "width": statusColumnWidth, "class": "text-no-wrap" },
                     { 'text': "Subject", 'value': "subject", "align": "center", "width": "", "class": "text-no-wrap" },
@@ -725,7 +744,6 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
                     { 'text': "Entries", 'value': "entry_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                     { 'text': "Views", 'value': "view_count", "align": "center", "width": "1%", "class": "text-no-wrap" },
                 ]
-
             }
             return IRElementReturnTypes[state.ElementType]
         }
@@ -733,6 +751,4 @@ export const getters: GetterTree<IRElementsListState, RootState> = {
             return []
         }
     },
-
-
 };

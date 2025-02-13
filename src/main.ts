@@ -19,12 +19,11 @@ import { ValidationProvider } from 'vee-validate';
 import VModal from 'vue-js-modal'
 import VueObserveVisibility from 'vue-observe-visibility'
 import VueMeta from 'vue-meta'
+
 Vue.use(VueObserveVisibility)
 Vue.config.productionTip = false
-
 Vue.component('ValidationProvider', ValidationProvider);
 Vue.use(VueMeta)
-
 Vue.use(VModal, {
   dialog: true
 })
@@ -54,16 +53,13 @@ Vue.use(VueAxios, vueAxios)
 Vue.use(VueCookies)
 Vue.prototype.$storage = Storage()
 Vue.prototype.$storage.storageConfig({ driver: localforage.INDEXEDDB, name: 'scot-cache' })
-const factories = { auth: Auth(Vue.axios), elements: Elements(Vue.axios), user: User(Vue.axios), storageProvider: StorageProvider(Vue.axios), team: Team(Vue.axios), file: File(Vue.axios) }
-Vue.prototype.$api = factories
-
+Vue.prototype.$api = { auth: Auth(Vue.axios), elements: Elements(Vue.axios), user: User(Vue.axios), storageProvider: StorageProvider(Vue.axios), team: Team(Vue.axios), file: File(Vue.axios) }
 Vue.axios.defaults.baseURL = process.env.VUE_APP_API_BASE
 
 function interceptClickEvent(e:any) {
-  let href;
   const target = e.target || e.srcElement;
   if (target.tagName === 'A') {
-      href = target.getAttribute('href');
+      const href = target.getAttribute('href');
       if (!href.startsWith('#')) {
           const url = (new URL(href))
           e.preventDefault()
@@ -85,15 +81,11 @@ if (document.addEventListener) {
   document.addEventListener('click', interceptClickEvent);
 } 
 
-
-
 // This is a router guard that checks to make sure the user is currently logged in. If the user is not
 // then this guard will route them back to login instead. 
-
 router.beforeEach(async (to, _from, next) => {
     try {
         const urlParams = new URLSearchParams(window.location.search)
-
         const code = urlParams.get('code')
         const state = urlParams.get('state')
         if (to.name == 'Landing' && code && state) {
@@ -120,12 +112,7 @@ router.beforeEach(async (to, _from, next) => {
             if (store.getters['user/isLoggedIn'] != false) {
                 // If our firehose is undefined, let's connect to it. This means we have a logged in user so we're ok to connect.
                 await store.dispatch('user/connectToFirehose')
-                // Every 10 seconds, reconnect to the firehose if we aren't connected to it
-                setInterval(() => {
-                    if (store.getters['user/firehose'] == undefined) {
-                        store.dispatch('user/connectToFirehose', { 'reconnect': true })
-                    }
-                }, 10000)
+                await store.dispatch('user/setFirehoseReconnect', true)
                 next() 
             }
             else {
@@ -144,9 +131,6 @@ router.beforeEach(async (to, _from, next) => {
         console.log(e)
     }
 })
-
-
-
 
 export default new Vue({
   router,

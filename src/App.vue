@@ -1,7 +1,7 @@
 <!-- App.vue -->
 <template>
     <v-app>
-        <ScotNavBar />
+        <ScotNavBar style="z-index: 99;"/>
         <v-main style="max-height: 100vh">
             <QuickSettingsDrawer />
             <v-dialog v-if="searchResults != undefined" :value="showSearchOverlay">

@@ -13,10 +13,10 @@
                         </v-col>
                     </v-row>
                     <v-row v-if="selectedElement.hasOwnProperty('tlp')">
-                        <v-col class="pt-0">
+                        <v-col class="py-1 px-1">
                             <TLPPicker :value="selectedElement.tlp" @input="tlpPickerInput"></TLPPicker>
                         </v-col>
-                     </v-row>
+                    </v-row>
                 </v-col>
                 <v-col :cols=8 class="align-self-center">
                     <h1 v-if="selectedElement.hasOwnProperty('subject')">
@@ -43,8 +43,8 @@
                                       :value="selectedElement.display_name">
                         </v-text-field>
                     <v-icon v-if="selectedElement.hasOwnProperty('icon')">
-                    {{ selectedElement.icon }}
-                </v-icon>
+                        {{ selectedElement.icon }}
+                    </v-icon>
                     </h1>
                     <h1 v-else-if="selectedElement.hasOwnProperty('name')">
                         <v-text-field placeholder="<NO NAME>"
@@ -301,12 +301,12 @@
                 <v-spacer></v-spacer>
                 <v-col class="align-self-end text-right pt-0">
                     <v-btn-toggle max=1 active-class="not-really-active">
-                        <v-btn small v-for="button in quickButtons[elementType]" @click=button.onClick(...button.args) :key=button.text :class="button.cssClass" :id="button.text.replace(/ /g, '')">
-                            <v-icon v-if="button.icon">
+                        <v-btn small v-for="button in quickButtons[elementType]" @click=button.onClick(...button.args) :key="button.text + button.icon" :class="button.cssClass" :id="button.text.replace(/ /g, '')">
+                            <v-icon v-if="button.icon" :color="button.iconColor">
                                 {{button.icon}}
                             </v-icon>
                             {{button.text}}
-                            <v-menu v-if="button.subActions">
+                            <v-menu v-if="button.subActions || button.subActionSlider">
                                 <template v-slot:activator="{ on, attrs }">
                                     <v-btn v-on="on" v-bind="attrs" class="mr-n1 elevation-2" outlined icon x-small>
                                         <v-icon small>
@@ -320,6 +320,9 @@
                                             {{subButton.icon}}
                                         </v-icon>
                                         {{subButton.text}}
+                                    </v-list-item>
+                                    <v-list-item v-if="button.subActionSlider" class="mr-9 mb-1">
+                                        <v-range-slider vertical thumb-label="always" @change=button.subActionSlider.onChange(...button.subActionSlider.args) :min="popularityMin" :max="popularityMax" v-model="popularityValue"></v-range-slider>
                                     </v-list-item>
                                 </v-list>
                             </v-menu>
@@ -365,40 +368,35 @@
                         </v-card>
                     </v-dialog>
 
-                    <v-dialog
-                    v-model="fileDialog"
-                    max-width="600px"
-                    
-                    >
-                    <v-card>
-                        <v-card-title class="text-h5">
-                        Upload File
-                        </v-card-title>
-                        <v-card-text>
-                            <v-file-input v-model="filesToSubmit" small-chips multiple></v-file-input>
-                            <span class="red--text">{{fileErrorText}}</span>
-                        </v-card-text>
-                        <v-card-actions>
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="red darken-1"
-                            text
-                            @click="onFileDialogCancel"
-                        >
-                            Cancel
-                        </v-btn>
-
-                        <v-btn
-                            color="green darken-1"
-                            text
-                            @click="onSubmitFiles()"
-                            :loading="fileDialogLoading"
-                        >
-                            Submit
-                        </v-btn>
-                        </v-card-actions>
-                    </v-card>
+                    <v-dialog v-model="fileDialog" max-width="600px">
+                        <v-card>
+                            <v-card-title class="text-h5">Upload File</v-card-title>
+                            <v-card-text>
+                                <v-file-input v-model="filesToSubmit" small-chips multiple></v-file-input>
+                                <span class="red--text">{{fileErrorText}}</span>
+                                <span v-for="(file, index) in filesToSubmit" :key="file.Id">
+                                    <v-text-field v-model="fileDescriptions[index]" :label="'Description for: ' + file.name" clearable></v-text-field>
+                                </span>
+                            </v-card-text>
+                            <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn
+                                    color="red darken-1"
+                                    text
+                                    @click="onFileDialogCancel"
+                                >
+                                    Cancel
+                                </v-btn>
+                                <v-btn
+                                    color="green darken-1"
+                                    text
+                                    @click="onSubmitFiles()"
+                                    :loading="fileDialogLoading"
+                                >
+                                    Submit
+                                </v-btn>
+                            </v-card-actions>
+                        </v-card>
                     </v-dialog>
                 </v-col>
  
@@ -407,7 +405,7 @@
                 <v-spacer></v-spacer>
                 <v-col class="align-self-end text-right pt-0">
                     <v-btn-toggle max=1 active-class="not-really-active">
-                        <v-btn small v-for="button in alertExtraQuickButtons" @click=button.onClick(...button.args) :key=button.text :class="button.cssClass" :id="button.text.replace(/ /g, '')">
+                        <v-btn small v-for="button in alertExtraQuickButtons" @click=button.onClick(...button.args) :key="button.text + button.icon" :class="button.cssClass" :id="button.text.replace(/ /g, '') + button.icon">
                             <v-icon v-if="button.icon">
                                 {{button.icon}}
                             </v-icon>
@@ -441,7 +439,7 @@
 </template>
 
 <script lang="ts">
-    import { Component, Vue } from 'vue-property-decorator'
+    import { Component, Vue, Watch } from 'vue-property-decorator'
     import { Action, Getter, Mutation } from 'vuex-class';
     import { EntryClassEnum, IRElement, IRElementQuickButton, IRElementType, Entry, NewEntry, IRElementStatus, TLPCode } from '@/store/modules/IRElements/types'
     import { getExportURL } from '@/api/elements'
@@ -464,7 +462,6 @@
 
     export default class MetaCard extends Vue {
         //@Action('retrieveElementList', { namespace }) retrieveElementList: any;
-        @Action('retrieveSelectedElementbyID', { namespace }) retrieveSelectedElementbyID: any;
         @Mutation('toggleFlair', { namespace }) toggleFlair: CallableFunction;
         @Mutation('setSelectedAlertIds', { namespace }) setSelectedAlertIds: CallableFunction;
         @Mutation('setFileDialogVisible', { namespace }) setFileDialogVisible: CallableFunction;
@@ -478,6 +475,8 @@
         @Getter('elementTypePluralized', { namespace }) elementTypePluralized: string | null;
         @Getter('allEntryIds', { namespace }) allEntryIds: CallableFunction;
         @Getter('fileDialog', { namespace }) fileDialog: boolean;
+        @Getter('showPopularity', { 'namespace': 'user' }) showPopularity: boolean
+        @Action('retrieveSelectedElementbyID', { namespace }) retrieveSelectedElementbyID: any;
         @Action('retrieveElementEntriesbyID', { namespace }) retrieveElementEntriesbyID: CallableFunction
         @Action('updateSignatureStatsbyID', { namespace }) updateSignatureStatsbyID: CallableFunction
         @Action('retrieveSelectedElementFilesbyID', { namespace }) retrieveSelectedElementFilesbyID: CallableFunction
@@ -499,7 +498,14 @@
         @Action('removeEntityClasses', { namespace }) removeEntityClasses: CallableFunction
         @Action('submitFile', { namespace }) submitFile: CallableFunction
         @Action('addNewEntryWithEditModeOn', { namespace }) addNewEntryWithEditModeOn: CallableFunction;
-        @Action('reflairSelectedElementbyID', { namespace }) reflairSelectedElementbyID: CallableFunction
+        @Action('reflairSelectedElementbyID', { namespace }) reflairSelectedElementbyID: CallableFunction;
+        @Action('favoriteElement', { namespace }) favoriteElement: CallableFunction;
+        @Action('subscribeElement', { namespace }) subscribeElement: CallableFunction;
+        @Action('unsubscribeElement', { namespace }) unsubscribeElement: CallableFunction;
+
+        popularityMax: number = 0
+        popularityMin: number = 0
+        popularityValue: Array<number> = [this.popularityMin, this.popularityMax]
 
         alertExtraQuickButtons: Array<IRElementQuickButton> = [
             { "text": "Open", "onClick": this.changeAlertElementStatus, "icon": "mdi-eye", "cssClass": "red darken-1", "args": [IRElementStatus.Open] },
@@ -512,6 +518,7 @@
         ]
         quickButtons: { [key in IRElementType]?: Array<IRElementQuickButton> } = {
             [IRElementType.Alertgroup]: [
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
                 { "text": "History", "onClick": this.openViewHistoryDialog, "args": [], "icon": "mdi-clock-outline", "subActions": [
@@ -529,16 +536,21 @@
                 { "text": "Delete Alertgroup", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" },
             ],
             [IRElementType.Event]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
                 ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": [true], "icon": "mdi-poll", cssClass: "",  "subActionSlider": {
+                    "onChange": this.collapsePopularity,
+                    "args": []
+                }},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
                 { "text": "History", "onClick": this.openViewHistoryDialog, "args": [], "icon": "mdi-clock-outline", "subActions": [
                     { "text": "View Edit History", "onClick": this.openEditHistoryDialog, args: [] },
                 ]},
-                
                 { "text": "Export", "onClick": this.openExportDialog, "args": ["Export"], "icon": "mdi-export", "subActions": [
                     { "text": "as HTML", "onClick": this.exportItem, "args": ["html"] },
                     { "text": "as DOCX", "onClick": this.exportItem, "args": ["docx"] },
@@ -550,8 +562,15 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Signature]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -566,9 +585,16 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Incident]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -583,8 +609,15 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Dispatch]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -602,9 +635,16 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Intel]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -619,9 +659,16 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Product]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -636,8 +683,15 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Entity]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Export", "onClick": this.openExportDialog, "args": ["Export"], "icon": "mdi-export", "subActions": [
@@ -648,8 +702,15 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Feed]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                         { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -664,8 +725,15 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.Guide]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                         { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -696,6 +764,8 @@
                 ]}
             ],
             [IRElementType.Entry]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Export", "onClick": this.openExportDialog, "args": ["Export"], "icon": "mdi-export", "subActions": [
                     { "text": "as HTML", "onClick": this.exportItem, "args": ["html"] },
                     { "text": "as DOCX", "onClick": this.exportItem, "args": ["docx"] },
@@ -704,9 +774,16 @@
                 ]}
             ],
             [IRElementType.VulnFeed]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -724,9 +801,16 @@
                 ]},
                 { "text": "Delete", "onClick": this.deleteItem, "args": [], "icon": "mdi-delete-outline", "cssClass": "red" }],
             [IRElementType.VulnTrack]: [
+                { "text": "", "onClick": this.subscribeItem, "args": [], "icon": "mdi-bell-outline", "cssClass": "", "iconColor": "blue" },
+                { "text": "", "onClick": this.favoriteItem, "args": [], "icon": "mdi-heart-outline", "cssClass": "", "iconColor": "red"},
                 { "text": "Add Entry", "onClick": this.addNewWYSIWYGEntry, "args": [], "icon": "mdi-plus-circle-outline", "cssClass": "green", "subActions": [
                     { "text": "Add Action Entry", "onClick": this.addNewActionEntry, args: [] },
                     { "text": "Add File", "onClick": this.addNewFileEntry, args: [] }
+                ]},
+                { "text": "Popularity", "onClick": this.collapsePopularity, "args": ["all"], "icon": "mdi-poll", cssClass: "",  "subActions": [
+                    { "text": "Show All", "onClick": this.collapsePopularity, args: ["all"] },
+                    { "text": "Show Top", "onClick": this.collapsePopularity, args: ["top"] },
+                    { "text": "Show Bottom", "onClick": this.collapsePopularity, args: ["bottom"] }
                 ]},
                 { "text": "Toggle Flair", "onClick": this.toggleFlairClicked, "args": [], "icon": "mdi-eye-off" },
                 { "text": "Permissions", "onClick": this.openPermissionsDialog, "args": [], "icon": "mdi-account-multiple" },
@@ -760,6 +844,7 @@
         editDescriptionTagSourceName: string = ""
         editDescriptionId: number | null = null
         filesToSubmit: Array<any> = []
+        fileDescriptions: any = {}
         fileDialogLoading: boolean = false
         fileErrorText: string | null = null
         editDescriptionType: string = ""
@@ -785,10 +870,30 @@
             return date.toLocaleDateString(undefined, options) + ' ' + date.toLocaleTimeString('en-US') 
         }
 
-        async changeDialogToTrue(){
+        async changeDialogToTrue() {
             this.promotionDialog = true
         }
-        async requestReflair(){
+
+        async favoriteItem() {
+            if (this.selectedElement) {
+                await this.favoriteElement({elementID: this.selectedElement.id, elementType: this.selectedElement.ElementType})
+                this.setFavoriteIcons()
+            }
+        }
+
+        async subscribeItem() {
+            if (this.selectedElement) {
+                if (!this.selectedElement.subscribed) {
+                    await this.subscribeElement({ elementID: this.selectedElement.id, elementType: this.selectedElement.ElementType })
+                }
+                else {
+                    await this.unsubscribeElement({ elementID: this.selectedElement.id, elementType: this.selectedElement.ElementType })
+                }
+                this.setSubscribeIcons()
+            }
+        }
+
+        async requestReflair() {
             if (this.selectedElement && (this.selectedElement.ElementType == IRElementType.Alertgroup || this.selectedElement.ElementType == IRElementType.Entry))
             {
                 await this.reflairSelectedElementbyID({elementType: this.selectedElement.ElementType, elementID: this.selectedElement.id})   
@@ -804,7 +909,7 @@
             this.editDescriptionInput = ""
         }
 
-        onFileChange(e:File[]){
+        onFileChange(e: File[]) {
             this.filesToSubmit = e
         }
 
@@ -812,13 +917,18 @@
             if (this.selectedElement && this.filesToSubmit.length > 0) {
                 this.fileDialogLoading = true
                 let result = true
-                for (const fileNumber in this.filesToSubmit){
+                for (const fileNumber in this.filesToSubmit) {
+                    let description = null
+                    if (Object.prototype.hasOwnProperty.call(this.fileDescriptions, fileNumber)) {
+                        description = this.fileDescriptions[fileNumber]
+                    }
                     const formData = new FormData()
                     formData.append('file', this.filesToSubmit[fileNumber])
-                    result = result && await this.submitFile({formData:formData, targetType: String(this.elementType), targetId: String(this.selectedElement.id)})
+                    result = result && await this.submitFile({formData:formData, targetType: String(this.elementType), targetId: String(this.selectedElement.id), description})
                 }
                 if (result) {
                     this.filesToSubmit = []
+                    this.fileDescriptions = {}
                     this.setFileDialogVisible(false)
                     this.fileErrorText = null
                 }
@@ -833,6 +943,7 @@
             if (!this.fileDialogLoading) {
                 this.fileDialogLoading = false
                 this.filesToSubmit = []
+                this.fileDescriptions = {}
                 this.fileErrorText = null
                 this.setFileDialogVisible(false)
             }
@@ -843,12 +954,12 @@
         }
 
 
-        onEntityClassesSubmitEvent(){
+        onEntityClassesSubmitEvent() {
             this.entityClassesDialog = false
         }
 
 
-        async callUpdateSignatureStats(){
+        async callUpdateSignatureStats() {
             if(this.selectedElement!= null)
             {
                 await this.updateSignatureStatsbyID({signatureId: this.selectedElement.id})
@@ -856,12 +967,13 @@
         }
 
 
-    async callSignatureStatRanking(){
-        if(this.selectedElement!= null)
-        {
-            await this.getSignatureStatRankingbyID({signatureId: this.selectedElement.id})
+        async callSignatureStatRanking() {
+            if(this.selectedElement!= null)
+            {
+                await this.getSignatureStatRankingbyID({signatureId: this.selectedElement.id})
+            }
         }
-    }
+
         statusChoices() {
             if (this.elementType == IRElementType.Signature) {
                 return [
@@ -940,7 +1052,6 @@
             if (this.selectedElement && this.selectedElement.classes){
                 await this.removeEntityClasses({entityClassId: entityClassId, targetEntityId:this.selectedElement.id})
             }
-           
         }
 
         onExistingTagSourceRightClick(e: any, tagSourceId: number, tagSourceType: string, tagSourceName: string, tagSourceDescription: string) {
@@ -964,7 +1075,6 @@
         onEditDescriptionClick() {
             this.showRemoveUpdateTagSourceMenu = false
             this.descriptionsDialog = true
-     
         }
 
         async OnUpdateEntityClassDescription(){
@@ -977,6 +1087,7 @@
         onExistingTagClick(tagID: number) {
             this.tagsBeingEdited.push(tagID)
         }
+
         async onExistingSourceEditSubmit(sourceID: number, updatedSourceIndex: number) {
             if (this.sourcesBeingEdited.includes(sourceID)) {
                 if (this.selectedElement != null) {
@@ -1046,16 +1157,38 @@
                 }
             }
         }
+
+        @Watch("showPopularity")
+        showHidePopularityButton() {
+            for (const item in this.quickButtons) {
+                const buttons = this.quickButtons[item as IRElementType] || null
+                if (buttons) {
+                    for (const button of buttons) {
+                        if (button.text == "Popularity") {
+                            button.cssClass = this.showPopularity ? "" : "d-none"
+                        }
+                    }
+                }
+            }
+        }
+
         mounted() {
             this.refreshTags()
             this.refreshSources()
             this.setFlairIcons()
+            this.showHidePopularityButton()
+            this.updatePopularityRangeSelector()
+            this.setFavoriteIcons()
+            this.setSubscribeIcons()
         }
 
         updated() {
             this.refreshTags()
             this.refreshSources()
+            this.setFavoriteIcons()
+            this.setSubscribeIcons()
         }
+
         async addNewWYSIWYGEntry() {
             // Only allow one entry to be added at a time. So check to see if any entries have an entry id of -1.
             if (this.selectedElementEntries != null) {
@@ -1079,6 +1212,58 @@
                     this.$root.$emit('highlightEntry-1')
                 }
             }
+        }
+
+        @Watch("selectedElementEntries", {deep: true})
+        updatePopularityRangeSelector() {
+            //get all popularity counts from all entries
+            let popularityCounts = this.selectedElementEntries?.map(a => a?.popularity_count) //get all parent entry popularity counts
+                .concat( //add to parent list
+                    this.selectedElementEntries?.map(a => a?.childEntries?.map(b => b?.popularity_count) //get all child popularity counts
+                ).flatMap(a => a)) //make all sub arrays a single array
+                .filter((item): item is number => !!item) //filter out any undefined items making sure to call out that there will be no undefined values otherwise typescript will complain
+                .sort((a, b) => (a - b)) //sort number correctly because it does it by some ascii nonsense for some reason like an array of [-2, -1, 1] will be sorted to [-1, -2, 1] why, WHO KNOWS!
+
+            //if we have some numbers
+            if (popularityCounts && popularityCounts.length > 0) {
+                //update min and max only if changed
+                const min = popularityCounts[0] as number
+                let reset = false
+                if (min != this.popularityMin) {
+                    this.popularityMin = min
+                    reset = true
+                }
+                const max = popularityCounts[popularityCounts.length - 1] as number
+                if (max != this.popularityMax) {
+                    this.popularityMax = max
+                    reset = true
+                }
+                if (reset)
+                    //reset collapse because numbers changed
+                    this.collapsePopularity(true)
+            }
+        }
+
+        async collapsePopularity(reset: boolean = false) {
+            if (reset)
+                this.popularityValue = [this.popularityMin, this.popularityMax]
+
+            function collapse(entry: Entry | NewEntry, popularityMin: number, popularityMax: number) {
+                if (entry.popularity_count) {
+                    if (entry.popularity_count >= popularityMin && entry.popularity_count <= popularityMax) {
+                        entry.collapsed = false
+                    }
+                    else {
+                        entry.collapsed = true
+                    }
+                }
+            }
+            this.selectedElementEntries?.forEach(a => {
+                a.childEntries?.forEach(b => {
+                    collapse(b, this.popularityValue.at(0) as number, this.popularityValue.at(-1) as number)
+                })
+                collapse(a, this.popularityValue.at(0) as number, this.popularityValue.at(-1) as number)
+            })
         }
 
         async addNewActionEntry() {
@@ -1283,6 +1468,38 @@
                             else if (!this.flairVisible) {
                                 button.icon = "mdi-eye"
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        setFavoriteIcons() {
+            const buttons = this.quickButtons[this.selectedElement?.ElementType as IRElementType] || null
+            if (buttons) {
+                for (const button of buttons) {
+                    if (button.onClick == this.favoriteItem) {
+                        if (this.selectedElement?.favorite) {
+                            button.icon = "mdi-heart"
+                        }
+                        else {
+                            button.icon = "mdi-heart-outline"
+                        }
+                    }
+                }
+            }
+        }
+
+        setSubscribeIcons() {
+            const buttons = this.quickButtons[this.selectedElement?.ElementType as IRElementType] || null
+            if (buttons) {
+                for (const button of buttons) {
+                    if (button.onClick == this.subscribeItem) {
+                        if (this.selectedElement?.subscribed) {
+                            button.icon = "mdi-bell"
+                        }
+                        else {
+                            button.icon = "mdi-bell-outline"
                         }
                     }
                 }

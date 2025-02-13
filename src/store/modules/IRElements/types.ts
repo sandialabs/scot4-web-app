@@ -1,7 +1,6 @@
 import { Role } from "../user/types";
 import { Audit } from "../team/types"
 
-
 export enum IRElementType {
     Event = "Event",
     Alertgroup = "Alertgroup",
@@ -29,6 +28,7 @@ export enum IRElementStatus {
     Closed = "closed",
     Promoted = "promoted"
 }
+
 export enum TLPCode {
     unset = 'unset',
     clear = 'clear',
@@ -38,6 +38,7 @@ export enum TLPCode {
     amber_strict = 'amber_strict',
     red = 'red'
 }
+
 export enum EntryClassEnum {
     entry = "entry",
     summary = "summary",
@@ -52,18 +53,19 @@ export enum PermissionEnum {
     delete = "delete",
     admin = "admin"
 }
+
 export interface Tag {
     id: number,
     name: string,
     description?: string
 }
 
-
 export interface Source {
     id: number,
     name: string,
     description?: string
 }
+
 export interface IRElement extends Record<string, any> {
     id: number | null,
     ElementType: IRElementType | null
@@ -95,7 +97,10 @@ export interface IRElement extends Record<string, any> {
     autoCompleteEntityClasses?: Array<any>,
     associated_sig_guide_map?: Record<number, Array<number>>
     linkedElements?: { [key in IRElementType]: Array<LinkedElement> }
-
+    popularity_count?: number | null,
+    popularity_voted?: string | null,
+    favorite?: boolean | null,
+    subscribed?: boolean | null,
 }
 
 export interface LinkedElement {
@@ -120,7 +125,9 @@ export interface IRElementMeta {
     closed_count?: number | null,
     tags?: Array<Tag> | null,
     sources?: Array<Source> | null,
-    stats?: any | null
+    stats?: any | null,
+    popularity_count?: number | null
+    popularity_voted?: string | null
 }
 
 export interface IRElementsListState {
@@ -178,10 +185,11 @@ export interface ScotFile {
     owner: string,
     filename: string,
     filesize: number,
-    content_type:string,
-    created:string,
-
+    content_type: string,
+    created: string,
+    description?: string,
 }
+
 export interface Entry {
     id: number,
     owner: string,
@@ -198,8 +206,11 @@ export interface Entry {
     editMode: boolean | string,
     repliesExpanded?: boolean,
     collapsed?: boolean,
-    childEntries: Array<Entry | NewEntry> | null | undefined
-
+    childEntries: Array<Entry | NewEntry> | null | undefined,
+    popularity_count?: number
+    popularity_voted?: string
+    favorite?: boolean
+    subscribed?: boolean
 }
 
 export interface NewEntry {
@@ -219,6 +230,8 @@ export interface NewEntry {
     editMode: boolean | string,
     modified: string,
     childEntries: Array<Entry | NewEntry> | null | undefined
+    popularity_count?: number
+    popularity_voted?: string
 }
 
 export interface Permission {
@@ -232,8 +245,10 @@ export interface Permission {
 export interface IRElementQuickButton {
     text: string,
     icon?: string,
+    iconColor?: string,
     cssClass?: string,
     onClick: CallableFunction,
     args?: Array<any>,
     subActions?: Array<IRElementQuickButton>
+    subActionSlider?: any
 }

@@ -90,6 +90,13 @@ export default (axios: AxiosStatic) => ({
             method: 'GET',
             withCredentials: true
         })
+    },
+    async resetPasswordAttempts(username: number): Promise<any> {
+        return axios({
+            url: '/users/' + username + '/reset-failed-attempts',
+            method: 'POST',
+            withCredentials: true
+        })
     }
 }
 );

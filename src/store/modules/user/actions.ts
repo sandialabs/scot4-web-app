@@ -8,16 +8,16 @@ import { convertToSnakeCase, convertFromSnakeCase } from '../../../utils/element
 
 
 export const actions: ActionTree<UserState, RootState> = {
-    async loginLocalUser({ commit }, { username, password }): Promise<any> {
+    async loginLocalUser({ commit, dispatch }, { username, password }): Promise<any> {
         try {
             commit('loginInProgress')
             const resp = await Vue.prototype.$api.auth.login(username, password)
             commit('loginSuccess', resp.data)
             const user = await Vue.prototype.$api.auth.getCurrentUser()
             commit('userFound', user.data)
-            await store.dispatch('user/retrieveNotifications')
-
-            
+            // Connect to firehose manually if logging in with username/password
+            dispatch('connectToFirehose')
+            dispatch('setFirehoseReconnect', true)
         }
         catch (e: any) {
             commit('loginError')
@@ -29,7 +29,6 @@ export const actions: ActionTree<UserState, RootState> = {
         try {
             const user = await Vue.prototype.$api.auth.getCurrentUser()
             commit('userFound', user.data)
-            await store.dispatch('user/retrieveNotifications')
         }
         catch (e: any) {
             commit('loginError')
@@ -55,8 +54,6 @@ export const actions: ActionTree<UserState, RootState> = {
             commit('loginSuccess', resp.data)
             const user = await Vue.prototype.$api.auth.getCurrentUser()
             commit('userFound', user.data)
-            await store.dispatch('user/retrieveNotifications')
-
         }
         catch (e) {
             commit('loginError')
@@ -126,15 +123,30 @@ export const actions: ActionTree<UserState, RootState> = {
         }
     },
 
-    async retrieveNotifications({ commit }) {
+    async retrieveNotifications({ commit, state }, { includeAcked, skip, limit } = {}) {
         try {
-            const resp = await Vue.prototype.$api.user.retrieveNotifications()
+            const resp = await Vue.prototype.$api.user.retrieveNotifications(includeAcked, skip, limit)
+            state.notificationsRemaining = resp.data.totalCount - resp.data.resultCount - (skip||0)
+            if (state.notificationsRemaining < 0) {
+                state.notificationsRemaining = 0
+            }
             commit('retrieveNotificationsSuccess', resp.data)      
         }
         catch (e) {
             commit('errorOccurred', e, { root: true })
         }
-    },  
+    },
+
+    async sendBroadcastNotification({ commit }, { notificationText, priority, expires }){
+        try {
+            await Vue.prototype.$api.user.sendBroadcastNotification(notificationText, priority, expires)
+            return true
+        }
+        catch (e) {
+            commit('errorOccurred', e, { root: true })
+            return false
+        }
+    },
 
     async connectToFirehose({ commit, dispatch, getters, rootGetters }, { reconnect = false } = {}) {
         try {
@@ -166,6 +178,7 @@ export const actions: ActionTree<UserState, RootState> = {
                         if (rootGetters['IRElements/selectedElement']) {
                             await store.dispatch('IRElements/reRetrieveElementInList', { 'elementID': rootGetters['IRElements/selectedElement'].id, 'elementType': rootGetters['IRElements/elementType'] })
                         }
+                        await dispatch('retrieveNotifications')
                     }
                 }
             }
@@ -177,12 +190,17 @@ export const actions: ActionTree<UserState, RootState> = {
     
     async handleFirehoseEvent({ commit }, { firehoseEvent, user, selectedElement, selectedElementEntryIds, selectedElementFiles, queueElementType, elementListFilterDict }) {
         // Short random delay to ease instantaneous load on the API
-        await new Promise(r => setTimeout(r, Math.random()*1000))
+        await new Promise(r => setTimeout(r, Math.random() * 1000))
         try {
             if (firehoseEvent.what == "create" || firehoseEvent.what == "delete" || firehoseEvent.what == "update") {
                 // Pull notifications for this user
                 if (firehoseEvent.element_type == 'notification' && firehoseEvent.username == user.username) {
-                    await store.dispatch('user/retrieveNotifications')
+                    if (firehoseEvent.what == "update" && firehoseEvent?.data?.ack) {
+                        commit("setNotificationAcked", firehoseEvent.element_id)
+                    }
+                    else {
+                        await store.dispatch('user/retrieveNotifications')
+                    }
                 }
                 // If element list type, re-retrieve the element list (except for item updates and tasks)
                 else if (firehoseEvent.element_type == convertToSnakeCase(queueElementType) && queueElementType.toLowerCase() != "entry") {
@@ -320,6 +338,21 @@ export const actions: ActionTree<UserState, RootState> = {
         }
     },
 
+    async setFirehoseReconnect({ dispatch, state, getters }, reconnect: boolean) {
+        if (reconnect && !state.firehoseReconnectTask) {
+            // Every 10 seconds, reconnect to the firehose if we aren't connected to it
+            state.firehoseReconnectTask = setInterval(() => {
+                if (getters.firehose == undefined) {
+                    dispatch('connectToFirehose', { 'reconnect': true })
+                }
+            }, 10000)
+        }
+        else if (!reconnect && state.firehoseReconnectTask) {
+            clearInterval(state.firehoseReconnectTask)
+            state.firehoseReconnectTask = undefined
+        }
+    },
+
     async createApiKey({ commit }) {
         try {
             const resp = await Vue.prototype.$api.user.createApiKey()
@@ -370,12 +403,33 @@ export const actions: ActionTree<UserState, RootState> = {
 
     async ackNotifications({ commit }, {notifications}) {
         try {
-            const notificationIds = notifications.map((el:any) => el.id)
-            const resp = await Vue.prototype.$api.user.ackNotifications(notificationIds)
-            await this.dispatch('user/retrieveNotifications')
+            const notificationIds = notifications.filter((el: any) => !el.ack).map((el: any) => el.id)
+            if (notificationIds.length > 0) {
+                const resp = await Vue.prototype.$api.user.ackNotifications(notificationIds)
+                commit('ackNotificationsSuccess', resp.data)
+            }
         }
         catch (e: any) {
                 commit('errorOccurred', e, { root: true })
+    }},
+
+    async getFavorites({ commit }) {
+        try {
+            const resp = await Vue.prototype.$api.user.getFavorites()
+            return resp.data
+        }
+        catch (e: any) {
+            commit('errorOccurred', e, { root: true })
+        }
+    },
+
+    async getSubscriptions({ commit }) {
+        try {
+            const resp = await Vue.prototype.$api.user.getSubscriptions()
+            return resp.data
+        }
+        catch (e: any) {
+            commit('errorOccurred', e, { root: true })
+        }
     }
-},
 };

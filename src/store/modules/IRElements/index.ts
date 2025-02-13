@@ -39,7 +39,7 @@ export const state: IRElementsListState = {
     elementListItemsPerPage: 50,
     elementListSortBy: undefined,
     elementListSortDesc: false,
-    elementListFilter: {}
+    elementListFilter: {},
 };
 
 const namespaced: boolean = true;

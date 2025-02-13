@@ -247,6 +247,16 @@ export const actions: ActionTree<AdminTabState, RootState> = {
         }
 
     },
+    async resetPasswordAttempts({ commit }, username): Promise<any> {
+        try {
+            await Vue.prototype.$api.auth.resetPasswordAttempts(username)
+            return true
+        }
+        catch (e: any) {
+            commit('errorOccurred', e, { root: true })
+            return false
+        }
+    },
     closeDialog({ commit }) {
         commit('changeDialog', DialogState.Hidden)
     },

@@ -65,8 +65,20 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
 
     async deleteFile({ commit }, { fileId, targetId, targetType }) {
         try {
-            const resp = await Vue.prototype.$api.elements.deleteFileById(fileId, targetId, targetType)
-            
+            await Vue.prototype.$api.elements.deleteFileById(fileId, targetId, targetType)
+        }   
+        catch (e: any) {
+            commit('errorOccurred', e, { root: true })
+        }
+    },
+
+    async updateFile({ commit }, { fileId, filename = null, description = null }) {
+        try {
+            const resp = await Vue.prototype.$api.elements.updateFileById(fileId, filename, description)
+            if (resp) {
+                return true
+            }
+            return false
         }   
         catch (e: any) {
             commit('errorOccurred', e, { root: true })
@@ -336,10 +348,9 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
         }
     },
 
-
     async reflairSelectedElementbyID({ commit, state }, { elementID, elementType }): Promise<any> {
         try {
-            const resp = await Vue.prototype.$api.elements.reflairSelectedElementById(elementID, elementType, state.SelectedElementAbortController)
+            await Vue.prototype.$api.elements.reflairSelectedElementById(elementID, elementType, state.SelectedElementAbortController)
         }
         catch (e: any) {
             if (!e.__CANCEL__) {
@@ -725,11 +736,8 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
                     // Don't change entry type if not given, also don't change entry owner from this function
                     const modifyEntryType = entryType ? EntryClassEnum[entryType as keyof typeof EntryClassEnum] : undefined
                     const entryCreateOrUpdateAttributes = {
-                        target_type: elementType,
-                        target_id: elementId,
                         entry_class: modifyEntryType,
-                        entry_data: entryContent,
-                        parent_entry_id: getParentEntryId(treePath)
+                        entry_data: entryContent
                     }
                     const resp = await Vue.prototype.$api.elements.updateOrCreateEntry(entryId, entryCreateOrUpdateAttributes)
                     await Vue.prototype.$storage.removeItem('editorContent' + ':' + elementType + ':' + elementId + ':' + entryId)
@@ -776,11 +784,8 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
                     // Don't change entry type if not given, also don't change entry owner from this function
                     const modifyEntryType = entryType ? EntryClassEnum[entryType as keyof typeof EntryClassEnum] : undefined
                     const entryCreateOrUpdateAttributes = {
-                        target_type: linkedElementType,
-                        target_id: linkedElementId,
                         entry_class: modifyEntryType,
-                        entry_data: entryContent,
-                        parent_entry_id: getParentEntryId(treePath)
+                        entry_data: entryContent
                     }
                     const resp = await Vue.prototype.$api.elements.updateOrCreateEntry(entryId, entryCreateOrUpdateAttributes)
                     await Vue.prototype.$storage.removeItem('editorContent' + ':' + linkedElementType + ':' + linkedElementId + ':' + entryId)
@@ -845,9 +850,9 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
         commit('removeFlairedEntity', entity)
     },
 
-    async submitFile({ commit }, {formData, targetType, targetId}): Promise<any>{
+    async submitFile({ commit }, {formData, targetType, targetId, description = null}): Promise<any>{
         try{
-            const resp = await Vue.prototype.$api.elements.submitFile(formData, targetType, targetId)
+            const resp = await Vue.prototype.$api.elements.submitFile(formData, targetType, targetId, description)
             if (resp) {
                 return true
             }
@@ -1038,7 +1043,6 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
         }
     },
 
-
     async removeEntryByID({ commit }, { entryId, treePath, linkedElementId, linkedElementType, linkedElementIndex }): Promise<any> {
         try {
             if (linkedElementId == null && linkedElementIndex == null && linkedElementType == null) {
@@ -1067,4 +1071,86 @@ export const actions: ActionTree<IRElementsListState, RootState> = {
             commit('errorOccurred', e, { root: true })
         }
     },
+
+    async upvoteElement({ commit, state }, { elementID, elementType, treePath = null, linkedElementType = null, linkedElementIndex = null }): Promise<any> {
+        try {
+            const resp = await Vue.prototype.$api.elements.upvoteElement(elementID, elementType, state.SelectedElementAbortController)
+            if (elementType == IRElementType.Entry) {
+                commit('updateElementLinkedElement', { "data": resp.data, treePath, linkedElementType, linkedElementIndex })
+            }
+            else {
+                commit('updateElementList', { "data": resp.data })
+            }
+        }
+        catch (e: any) {
+            if (!e.__CANCEL__) {
+                commit('errorOccurred', e, { root: true })
+            }
+            return null
+        }
+    },
+
+    async downvoteElement({ commit, state }, { elementID, elementType, treePath = null, linkedElementType = null, linkedElementIndex = null }): Promise<any> {
+        try {
+            const resp = await Vue.prototype.$api.elements.downvoteElement(elementID, elementType, state.SelectedElementAbortController)
+            if (elementType == IRElementType.Entry) {
+                commit('updateElementLinkedElement', { "data": resp.data, treePath, linkedElementType, linkedElementIndex })
+            }
+            else {
+                commit('updateElementList', { "data": resp.data })
+            }
+        }
+        catch (e: any) {
+            if (!e.__CANCEL__) {
+                commit('errorOccurred', e, { root: true })
+            }
+            return null
+        }
+    },
+
+    async favoriteElement({ commit, state }, { elementID, elementType, treePath = null, linkedElementType = null, linkedElementIndex = null }): Promise<any> {
+        try {
+            const resp = await Vue.prototype.$api.elements.favoriteElement(elementID, elementType, state.SelectedElementAbortController)
+            if (elementType == IRElementType.Entry) {
+                commit('updateElementLinkedElement', { "data": resp.data, treePath, linkedElementType, linkedElementIndex })
+            }
+            else {
+                commit('retrieveElementbyIDSuccess', { "data": resp.data, "elementType": elementType })
+            }
+        }
+        catch (e: any) {
+            if (!e.__CANCEL__) {
+                commit('errorOccurred', e, { root: true })
+            }
+            return null
+        }
+    },
+
+    async subscribeElement({ commit, state }, { elementID, elementType, treePath = null, linkedElementType = null, linkedElementIndex = null }): Promise<any> {
+        try {
+            const resp = await Vue.prototype.$api.elements.subscribeElement(elementID, elementType, state.SelectedElementAbortController)
+            commit('subscribeUnsubscribeSuccess', { data: resp.data, newdata: { "subscribed": true }, treePath, linkedElementType, linkedElementIndex })
+              return true
+        }
+        catch (e: any) {
+            if (!e.__CANCEL__) {
+                commit('errorOccurred', e, { root: true })
+            }
+            return null
+        }
+    },
+
+    async unsubscribeElement({ commit, state }, { elementID, elementType, treePath = null, linkedElementType = null, linkedElementIndex = null }): Promise<any> {
+        try {
+            const resp = await Vue.prototype.$api.elements.unsubscribeElement(elementID, elementType, state.SelectedElementAbortController)
+            commit('subscribeUnsubscribeSuccess', { data: resp.data, newdata: { "subscribed": false }, treePath, linkedElementType, linkedElementIndex })
+            return true
+        }
+        catch (e: any) {
+            if (!e.__CANCEL__) {
+                commit('errorOccurred', e, { root: true })
+            }
+            return null
+        }
+    }
 };

@@ -2,7 +2,7 @@ import {AxiosStatic} from "axios"
 import { IRElementType, IRElementStatus, PermissionEnum } from "@/store/modules/IRElements/types"
 import { convertToSnakeCase } from '@/utils/elementUtils'
  
-const IRElementAPIPaths: {[key in IRElementType]?: string}= {
+const IRElementAPIPaths: {[key in IRElementType]?: string} = {
     [IRElementType.Alertgroup]: "/alertgroup",
     [IRElementType.Event]: "/event",
     [IRElementType.Alert]: "/alert",
@@ -142,7 +142,7 @@ export default (axios: AxiosStatic) => ({
         })
     },
     
-    async submitFile(formData:FormData, targetType:string, targetId:string): Promise<any> {
+    async submitFile(formData: FormData, targetType: string, targetId: string, description: string | null = null): Promise<any> {
         return axios({
             url: '/file/',
             method: 'POST',
@@ -150,6 +150,7 @@ export default (axios: AxiosStatic) => ({
                 'Content-Type': 'multipart/form-data',
                 'target_type': targetType,
                 'target_id': targetId,
+                'description': description
             },
             withCredentials: true,
             data: formData
@@ -192,6 +193,26 @@ export default (axios: AxiosStatic) => ({
             },
             withCredentials: true,
             data: { target_type: convertToSnakeCase(targetType), target_id: targetId }
+        })
+    },
+
+    async updateFileById(fileId: number, filename: string | null, description: string | null) {
+        const path = 'file' + '/' + fileId
+        const data: any = {}
+        if (filename) {
+            data["filename"] = filename
+        }
+        if (description) {
+            data["description"] = description
+        }
+        return axios({
+            url: path,
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            withCredentials: true,
+            data: data
         })
     },
 
@@ -615,6 +636,18 @@ export default (axios: AxiosStatic) => ({
     })
     },
 
+    async addEntityTag(entityId:number, tagToAdd:any): Promise<any> {
+        return axios({
+        url: `/entity/${entityId}/tag`,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        withCredentials:true,
+        data: {'id': tagToAdd}
+    })
+    },
+
     async removeEntityClass(entityId:number, entityClassesToRemove:any): Promise<any> {
         return axios({
         url: `/entity/${entityId}/entity_class/remove`,
@@ -742,4 +775,57 @@ export default (axios: AxiosStatic) => ({
             withCredentials: true
         })
     },
-   });
+
+    async upvoteElement(elementID: number, elementType: IRElementType, abortController: AbortController): Promise<any> {
+        return axios({
+            url: `${IRElementAPIPaths[elementType]}/${elementID}/upvote`,
+            method: 'POST',
+            withCredentials: true,
+            signal: abortController?.signal
+        })
+    },
+
+    async downvoteElement(elementID: number, elementType: IRElementType, abortController: AbortController): Promise<any> {
+        return axios({
+            url: `${IRElementAPIPaths[elementType]}/${elementID}/downvote`,
+            method: 'POST',
+            withCredentials: true,
+            signal: abortController?.signal
+        })
+    },
+
+    async favoriteElement(elementID: number, elementType: IRElementType, abortController: AbortController): Promise<any> {
+        return axios({
+            url: `${IRElementAPIPaths[elementType]}/${elementID}/favorite`,
+            method: 'POST',
+            withCredentials: true,
+            signal: abortController?.signal
+        })
+    },
+
+    async subscribeElement(elementID: number, elementType: IRElementType, abortController: AbortController): Promise<any> {
+        return axios({
+            url: `notification/subscribe`,
+            method: 'POST',
+            withCredentials: true,
+            data: {
+                target_type: convertToSnakeCase(elementType),
+                target_id: elementID
+            },
+            signal: abortController?.signal
+        })
+    },
+
+    async unsubscribeElement(elementID: number, elementType: IRElementType, abortController: AbortController): Promise<any> {
+        return axios({
+            url: `notification/unsubscribe`,
+            method: 'POST',
+            withCredentials: true,
+            data: {
+                target_type: convertToSnakeCase(elementType),
+                target_id: elementID
+            },
+            signal: abortController?.signal
+        })
+    },
+});

@@ -31,20 +31,23 @@
         @Getter('currentUserPreferences', { namespace }) currentUserPreferences: Record<string, any> | undefined
         @Action('updateUserPreferences', { namespace }) updateUserPreferences: CallableFunction
 
-        enabledPrefs = ['darkMode']
+        enabledPrefs = ['darkMode', 'showPopularity']
         prefPrettyNames = {
             'darkMode': 'Dark Mode',
             'inboxView': 'Inbox View',
-            'testPref': 'Test Preference'
+            'testPref': 'Test Preference',
+            'showPopularity': 'Display Popularity'
         }
         prefDescriptions = {
             'darkMode': 'Whether or not to enable the alternate dark color scheme',
             'inboxView': 'Whether or not to enable the experimental inbox view on various response screens',
-            'testPref': 'This is a test preference that does nothing'
+            'testPref': 'This is a test preference that does nothing',
+            'showPopularity': 'Enable to display popularity counts and voting buttons in tables and on entries'
         }
         prefDefaults = {
             'darkMode': false,
             'inboxView': false,
+            'showPopularity': false
         }
 
         async updatePreference(pref: string, value: any) {

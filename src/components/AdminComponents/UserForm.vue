@@ -89,11 +89,19 @@
                 </v-container>
             </v-form>
             <v-card-actions>
-                <v-btn v-if="dialog == 'UserEdit'" 
+                <v-btn v-if="dialog == 'UserEdit'"
                        @click="submit" color="green" :loading="submitLoading">Save Changes</v-btn>
-                <v-btn v-if="dialog == 'UserNew'" 
+                <v-btn v-if="dialog == 'UserNew'"
                        @click="submit" color="green" :loading="submitLoading">Create</v-btn>
                 <v-btn @click="cancel">Cancel</v-btn>
+                <v-btn v-if="dialog == 'UserEdit'" @click="resetAttempts" :loading="resetAttemptsLoading">
+                    Reset Password Attempts
+                    <template v-slot:loader v-if="resetAttemptsComplete">
+                        <span class="custom-loader">
+                            <v-icon>mdi-check</v-icon>
+                        </span>
+                    </template>
+                </v-btn>
             </v-card-actions>
         </v-card-text>
     </v-card>
@@ -118,6 +126,7 @@
         @Action('assignRole', { namespace }) assignRole: CallableFunction
         @Action('removeRole', { namespace }) removeRole: CallableFunction
         @Action('closeDialog', { namespace }) closeDialog: CallableFunction
+        @Action('resetPasswordAttempts', { namespace }) resetPasswordAttempts: CallableFunction
         @Ref('form') readonly form!: any
 
         password: string = ''
@@ -128,6 +137,8 @@
         roleBeingRemoved: boolean = false
         dontWarnAgain: boolean = false
         selectedUserRoles: Array<number> = []
+        resetAttemptsLoading: boolean = false
+        resetAttemptsComplete: boolean = false
 
         mounted() {
             this.selectedUserRoles = this.selectedUser.roles.map(({ id }) => id)
@@ -225,6 +236,18 @@
             this.confirmPassword = ''
             this.password = ''
             this.closeDialog()
+        }
+
+        async resetAttempts() {
+            this.resetAttemptsLoading = true
+            const success = await this.resetPasswordAttempts(this.selectedUser.username)
+            if (success) {
+                this.resetAttemptsComplete = true
+                await new Promise(r => setTimeout(r, 2000)) // Wait 2 seconds
+                this.resetAttemptsLoading = false
+                this.resetAttemptsComplete = false
+            }
+            this.resetAttemptsLoading = false
         }
 
         autocompleteItemClicked(item: Role) {

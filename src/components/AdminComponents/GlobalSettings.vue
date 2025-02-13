@@ -15,6 +15,7 @@
                               :hint="settingDescriptions[setting]"
                               @change="updateSetting(setting, $event)"></v-text-field>
             </span>
+            <GlobalAnnouncements style="max-width: 700px"></GlobalAnnouncements>
         </v-card-text>
     </v-card>
 </template>
@@ -23,9 +24,11 @@
 import { Component, Vue } from 'vue-property-decorator'
     import { Action, Getter, Mutation, } from 'vuex-class';
     import { Settings } from '@/store/modules/team/types'
+    import GlobalAnnouncements from './GlobalAnnouncements.vue'
 
     @Component({
-      components: {
+        components: {
+            GlobalAnnouncements
         },
     })
 

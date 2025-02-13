@@ -22,7 +22,8 @@ module.exports = {
         "allowDestructuring": true, // Allow `const { props, state } = this`; false by default
         "allowedNames": ["vm"] // Allow `const vm= this`; `[]` by default
       }
-    ]
+    ],
+    "vue/valid-v-slot": ["error", {"allowModifiers": true}]
   },
   overrides: [
     {
@@ -34,5 +35,5 @@ module.exports = {
         jest: true
       }
     }
-  ]
+  ],
 }

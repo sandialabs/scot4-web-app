@@ -6,6 +6,18 @@
                     <u> Entity Type: {{ entityType }} </u>
                     <v-tooltip right>
                         <template v-slot:activator=" { on }">
+                            <v-btn icon v-on="on" @click="selectAllEntities(entityType)">
+                                <v-icon>
+                                    mdi-checkbox-multiple-marked-outline
+                                </v-icon>
+                            </v-btn>
+                        </template>
+                        <span>
+                            Select all entities of this type for tagging/classifying
+                        </span>
+                    </v-tooltip>
+                    <v-tooltip right>
+                        <template v-slot:activator=" { on }">
                             <v-btn icon v-on="on" @click="copyEntityTypeClipboard(entityType)">
                                 <v-icon>
                                     mdi-content-copy
@@ -18,17 +30,35 @@
                     </v-tooltip>
                 </h3>
                 <v-list-item v-for="entity of entities" :key="entity.id" dense v-observe-visibility="{callback: (isVisible) => entityVisible(isVisible, entity), once: true, intersection: {rootMargin: '300px 0px 300px 0px', threshold: 0.2}}">
-                    <FlairComponent v-ripple="false" :entity="entity" v-if="flaired && visibleEntities.has(entity.id)"></FlairComponent>
+                    <v-checkbox :value="entity.id" v-model="selectedEntityIds" />
+                    <FlairComponent :entity="entity" v-if="flaired && visibleEntities.has(entity.id)"></FlairComponent>
                     <span v-else>{{entity.value}}</span>
                 </v-list-item>
                 <v-divider />
             </v-list>
         </v-card-text>
         <v-card-actions>
+            <v-btn @click="openClassifyModal()" :disabled="selectedEntityIds.length === 0">
+                Add Class or Tag
+            </v-btn>
+            <v-btn @click="openMappingModal()" v-if="hasIpAddresses()">
+                IP Geo Map
+            </v-btn>
             <v-btn @click="copyAllEntitiesToClipboard()">
                 Copy All Entities
             </v-btn>
         </v-card-actions>
+        <ClassifyEntityDialog
+            v-model="isClassifyModalOpen"
+            :selectedEntityIds="selectedEntityIds"
+            @submit-success="submitSuccess()"
+        />
+        <GeoMappingPane
+            ref="geoMappingPane"
+            v-model="isMappingModalOpen"
+            :displayedEntities="displayedEntities"
+            :target="selectedElement"
+        />    
     </v-card>
 </template>
 
@@ -37,12 +67,16 @@ import { Component, Prop, Vue, Watch } from 'vue-property-decorator'
 import 'splitpanes/dist/splitpanes.css'
 import { Getter } from 'vuex-class';
 import { IRElement } from '@/store/modules/IRElements/types'
+import ClassifyEntityDialog from '@/components/PaneComponents/ClassifyEntityDialog.vue';
+import GeoMappingPane from '@/components/PaneComponents/GeoMappingPane.vue';
 import FlairComponent from '@/components/JournalComponents/EntryCellComponents/WYSIWYGCell/FlairPlugin/FlairComponent.vue';
 const namespace: string = 'IRElements';
 
 @Component({
     components: {
-        FlairComponent
+        FlairComponent,
+        ClassifyEntityDialog,
+        GeoMappingPane
     },
 })
 export default class EntitiesPane extends Vue{
@@ -56,10 +90,21 @@ export default class EntitiesPane extends Vue{
     displayedEntities: Record<string, Record<string, any>> = {}
     visibleEntities: Set<number> = new Set()
     populatingEntities: boolean = false
+    selectedEntityIds: number[] = []
+    selectedClass: string = ''
+    isClassifyModalOpen: boolean = false
+    isMappingModalOpen:boolean = false
+    
 
     mounted() {
-        this.populateEntities()
+        this.populateEntities();
     }
+
+    submitSuccess() {
+        this.selectedEntityIds = [];
+        this.displayedEntities = this.selectedElementEntities;
+    }
+
     @Watch('selectedElementEntities')
     async onEntitiesLoaded() {
         if (!this.populatingEntities) {
@@ -116,6 +161,28 @@ export default class EntitiesPane extends Vue{
             }
         }
         navigator.clipboard.writeText(textString)
+    }
+
+    selectAllEntities(entityType: string) {
+        const entities = this.displayedEntities[entityType];
+        for (const entityKey of Object.keys(entities)) {
+            const entity = entities[entityKey];
+            if (!this.selectedEntityIds.includes(entity.id)) {
+                this.selectedEntityIds.push(entity.id);
+            }
+        }
+    }
+
+    openClassifyModal() {
+        this.isClassifyModalOpen = true;
+    }
+
+    openMappingModal() {
+        this.isMappingModalOpen = true;
+    }
+
+    hasIpAddresses() {
+        return this.displayedEntities["ipaddr"] && Object.keys(this.displayedEntities["ipaddr"]).length > 0;
     }
 }
 </script>
