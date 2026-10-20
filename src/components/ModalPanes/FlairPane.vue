@@ -232,7 +232,7 @@ async function handleFirehose({ name, store, args, after, onError }) {
 
 <style scoped>
 .short-content {
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto; /* Enable vertical scrolling for overflow content */
     padding: 16px;
     border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); /* Optional: Add a border for visual separation */

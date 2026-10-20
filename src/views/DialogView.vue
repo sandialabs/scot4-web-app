@@ -24,7 +24,7 @@
             <AddRemoveClassifyView v-else-if="Dialog.GetDialogType == 'add_remove_classify'" :params="Dialog.GetDialogParams" />
             <ClassView v-else-if="Dialog.GetDialogType == 'class'" :params="Dialog.GetDialogParams" @RefreshQueueView="RefreshQueueView" @RefreshSelectedView="RefreshSelectedView" />
             <FileEditView v-else-if="Dialog.GetDialogType == 'file-edit'" :params="Dialog.GetDialogParams" @RefreshSelectedView="RefreshSelectedView" />
-            <PromoteToExistingView v-else-if="Dialog.GetDialogType == 'promote-to-existing'" :params="Dialog.GetDialogParams" />
+            <PromoteToExistingView v-else-if="Dialog.GetDialogType == 'promote-to-existing'" :params="Dialog.GetDialogParams"  @RefreshSelectedView="RefreshSelectedView"/>
             <EntryEntityView v-else-if="Dialog.GetDialogType == 'entry-entities-click'" :params="Dialog.GetDialogParams" @RefreshSelectedView="RefreshSelectedView" />
             <PivotEntityTypeView v-else-if="Dialog.GetDialogType == 'pivot-entity-type'" :params="Dialog.GetDialogParams" @RefreshSelectedView="RefreshSelectedView" />
             <EntryEditConfirmView v-else-if="Dialog.GetDialogType == 'entry-edit-confirm'" :params="Dialog.GetDialogParams" />

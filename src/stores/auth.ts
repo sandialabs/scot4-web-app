@@ -5,10 +5,14 @@ import axiosDefault, { Axios } from 'axios';
 import { inject } from 'vue';
 import { useSnackBarStore } from './snackbar';
 import { useAuth_APIStore } from './_auth_api'
+import { useStorage } from '@/storage/storage'
+import { useFirehoseStore } from './firehose';
 
 export const useAuthStore = defineStore('auth', () => {
     const SnackBar = useSnackBarStore()
     const AUTH_API = useAuth_APIStore()
+    const Storage = useStorage()
+    const firehose = useFirehoseStore()
     const axios = inject<Axios>('axios', axiosDefault)
 
     const User = ref(null)
@@ -61,6 +65,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function Logout() {
         isAuthenticated.value = false
+        firehose.setFirehoseReconnect(false)
+        await firehose.disconnect()
+        await Storage.removeItem('accessToken')
         return await AUTH_API.Logout()
     }
     

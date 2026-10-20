@@ -48,19 +48,16 @@
                 <template v-slot:append>
                     <div style="display: grid;">
                         <v-btn class="mb-1" append-icon="mdi-open-in-new" text="SCOT Signature"
-                            :to="{name: IRElementType.Signature, params: {id: signatureSelected.id}}"
-                            size="small" target="_blank" density="comfortable" variant="tonal"
-                        />
+                               :to="{name: IRElementType.Signature, params: {id: signatureSelected.id}}"
+                               size="small" target="_blank" density="comfortable" variant="tonal" />
                         <v-btn class="mb-1" v-if="signatureSelected.type == 'splunk' && 'search_link' in signatureSelected.data"
-                            append-icon="mdi-open-in-new" text="Splunk Signature" :href="signatureSelected.data.search_link"
-                            target="_blank" size="small" density="comfortable" variant="tonal"
-                        />
-                        <v-btn v-if="signatureSelected.type == 'splunk' && 'back_refs' in signatureSelected.data" append-icon="mdi-open-in-new"
-                            text="View In Splunk" :href="incomingProps.data.back_refs" target="_blank" size="small" density="comfortable" variant="tonal"
-                        />
+                               append-icon="mdi-open-in-new" text="Splunk Signature" :href="signatureSelected.data.search_link"
+                               target="_blank" size="small" density="comfortable" variant="tonal" />
+                        <v-btn v-if="signatureSelected.type == 'splunk' && 'back_refs' in incomingProps.data" append-icon="mdi-open-in-new"
+                               text="View In Splunk" :href="incomingProps.data.back_refs" target="_blank" size="small" density="comfortable" variant="tonal" />
                     </div>
                 </template>
-                <v-list>
+                <v-list class="pt-0">
                     <v-list-subheader>Signature Attributes</v-list-subheader>
                     <v-divider />
                     <v-list-item v-for="(val, propName) in signatureSelected.data" :key=propName>

@@ -1,28 +1,27 @@
 <template>
-    <v-container v-if="!isLoading" :fluid="true" class="pa-0" ref="entryRoot">
+    <v-container v-if="!isLoading" :fluid="true" class="pa-0" ref="entryRoot" style="min-height: 0px">
         <template v-for="(entry, index) in sortedEntries" :key="entry?.id">
-            <v-container class="ma-2 mb-0 pa-0" :id="entry?.id + 'journal'" :fluid="true">
-                <v-card elevation="2"
+            <v-container class="ma-2 mb-0 pa-0" :id="entry?.id + 'journal'" :fluid="true" style="height: 100%">
+                <v-card elevation="2" class="d-flex flex-column" :style="incomingProps.maximized ? 'height: 100%' : 'height: 100%'"
                     :class="{'tlp-red': entry?.tlp == 'red', 'tlp-amber': entry?.tlp == 'amber', 'tlp-green': entry?.tlp == 'green', 'tlp-amber-strict': entry?.tlp == 'amber_strict', 'journal-border': entry?.tlp == 'unset' || entry?.tlp == 'clear'}">
                     <template v-if="entry?.entry_class == 'summary'">
-                        <EntryCell :summary="true" v-if="!isLoading" :source="entry"
+                        <EntryCell :summary="true" v-if="!isLoading" :source="entry" :maximized="incomingProps.maximized"
                             :entities="incomingProps.entities" :editing="entry.id == -1" :isNotModal="isNotModal"
                             :expanded="isEntryExpanded" @delete="onEntryDelete(entry.id)" @newentry="onNewEntry"/>
                     </template>
                     <template v-if="entry?.entry_class == 'promotion'">
                         <PromotedCell v-if="!isLoading"
-                            :promotionSources="entry?.entry_data?.promotion_sources" :source="entry"
+                            :promotionSources="entry?.entry_data?.promotion_sources" :source="entry" :maximized="incomingProps.maximized"
                             :entities="incomingProps.entities" :expanded="isEntryExpanded" @newentry="onNewEntry"/>
                     </template>
                     <template v-if="entry?.entry_class == 'entry' || entry?.entry_class == 'task'">
-                        <EntryCell v-if="!isLoading" :source="entry"
+                        <EntryCell v-if="!isLoading" :source="entry" :maximized="incomingProps.maximized"
                             :entities="incomingProps.entities" :editing="entry.id == -1" :isNotModal="isNotModal"
                             :expanded="isEntryExpanded" @delete="onEntryDelete(entry.id)" @newentry="onNewEntry"/>
-
                     </template>
                 </v-card>
             </v-container>
-            <v-container v-if="entry?.children?.length > 0" fluid class="mx-2 my-0 px-5 pt-0" :class="replyDepthColor">
+            <v-container v-if="entry?.children?.length > 0 && !incomingProps.maximized" fluid class="mx-2 my-0 px-5 pt-0" :class="replyDepthColor">
                 <div class="v-system-bar align-items-start cursor-pointer" :class="replyDepthColor" style="position: unset !important;" @click="isShowingReply = !isShowingReply">
                     <v-icon :icon="isShowingReply ? 'mdi-arrow-down' : 'mdi-arrow-right'"/>
                     <span>{{ isShowingReply ? "Showing" : "See" }} ({{ entry?.children?.length }}) replies</span>
@@ -40,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, useTemplateRef, defineEmits, computed } from 'vue';
+import { ref, onMounted, watch, useTemplateRef, computed } from 'vue';
 import LoadingMultiLine from '../Loaders/LoadingMultiLine.vue'
 import JournalEntryCell from './JournalEntry.vue'
 import PromotedCell from './EntryCells/PromotedCell.vue';
@@ -54,10 +53,14 @@ const route = useRoute()
 const firehose = useFirehoseStore()
 const API_GET = useGET_APIStore()
 const theme = useTheme()
-let incomingProps = defineProps({
+const incomingProps = defineProps({
     data: Object,
     entities: Object,
     isNotModal: Boolean,
+    maximized: {
+        default: false,
+        required: false
+    },
     replyDepth: {
         default: 0,
         required: false

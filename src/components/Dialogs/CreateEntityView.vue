@@ -63,7 +63,7 @@ async function createNewEntity() {
             },
             create_flair_regex: createEntityRegex.value
         }
-        const resp = postAPI.POST_CreateIRElement(IRElementAPIPaths[IRElementType.Entity], newEntity)
+        const resp = await postAPI.POST_CreateIRElement(IRElementAPIPaths[IRElementType.Entity], newEntity)
         if (resp) {
             await reflairEntry()
             Dialog.ToggleDialog()

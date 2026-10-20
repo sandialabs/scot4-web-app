@@ -81,7 +81,9 @@ async function Promote(addTagsSources: boolean) {
         }),
         addTagsSources ? incomingProps.params.sources : undefined,
         addTagsSources ? incomingProps.params.tags : undefined
-    )).then(() => {
+    )).then((v: any) => {
+        // Just re-retrieve the whole *original* object to see what changed, the api return is the new object that was promoted to
+        v ? emit('RefreshSelectedView', false) : null;
         Dialog.ToggleDialog()
     }).catch((error: any) => {
         SnackBar.ShowSnackBarError(error)

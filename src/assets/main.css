@@ -306,11 +306,18 @@ td {
 }
 
 .journal-modal {
-  background-color: #ECEFF1 !important;
   height: 100%;
   padding: 10px;
   padding-left: 20px;
   padding-right: 20px;
+}
+
+.scot-theme-light .journal-modal {
+  background-color: #F9F9F9 !important;
+}
+
+.scot-theme-dark .journal-modal {
+  background-color: #212121 !important;
 }
 
 .grab-cursor {
@@ -334,7 +341,7 @@ figure.table {
 }
 
 .editor-entry, .cell-view {
-  padding: 5px;
+  padding: 12px;
   min-height: 50px !important;
   max-height: 100vh;
   overflow: auto;

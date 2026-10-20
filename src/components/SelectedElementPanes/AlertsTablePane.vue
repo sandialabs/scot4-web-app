@@ -268,8 +268,8 @@ function addColumnResizers() {
         const table = tables[0]
         const row = table.getElementsByTagName('tr')[0],
             cols: any = row ? row.children : undefined,
-            row2 = table.getElementsByTagName('tr')[1],
-            cols2: any = row2 ? row2.children : undefined;
+            row2 = table.getElementsByTagName('tr')[1];
+        let cols2: any = row2 ? row2.children : undefined;
         if (!cols) return;
         if (!cols2) {
             cols2 = cols

@@ -19,26 +19,30 @@
         <v-chip class="ma-2" variant="flat" color="red" size="x-small"
             v-if="!entry?.entry_data?.flaired_html && entry.id != -1 && type != 'promotion'" text="Unflaired Entry" />
         <v-spacer />
-        <v-btn v-if="entry.id != -1" class="bg-transparent" :elevation="0" @click="Subscribe(entry.subscribed)"
+        <v-btn v-if="entry.id != -1 && !isEntryEditing" class="bg-transparent" :elevation="0" @click="Subscribe(entry.subscribed)"
             v-tooltip:bottom="'Subscribe'">
             <FontAwesomeIcon :icon="faBell" :color="entry.subscribed ? 'blue' : ''" />
         </v-btn>
-        <v-btn v-if="entry.id != -1" class="bg-transparent" :elevation="0" @click="Favorite()"
+        <v-btn v-if="entry.id != -1 && !isEntryEditing" class="bg-transparent" :elevation="0" @click="Favorite()"
             v-tooltip:bottom="'Favorite'">
             <FontAwesomeIcon :icon="faHeart" :color="entry.favorite ? 'red' : ''" />
         </v-btn>
-        <PopularityElement v-if="UserPreferences?.showPopularity && entry.id != -1" :voted="entry['popularity_voted']"
+        <PopularityElement v-if="UserPreferences?.showPopularity && entry.id != -1 && !isEntryEditing" :voted="entry['popularity_voted']"
             class="mx-2" :count="entry.popularity_count == null ? 0 : entry.popularity_count" :elementID="entry.id"
             :elementType="entry.entry_class" :queueView="false" />
         <span class="mt-n1">
             <TLPPicker v-if="entry.tlp && !isEntryEditing" :obj="entry" :data="entry.tlp" :targetType="'entry'"
                 :targetId="entry.id" />
         </span>
+        <span class="mt-n1">
+            <ALFPicker v-if="entry.alf && !isEntryEditing" :obj="entry" :data="entry.alf" :targetType="'entry'"
+                :targetId="entry.id" />
+        </span>
         <v-btn class="bg-transparent" elevation="0" @click="edit()" v-if="!isEntryEditing && type !== 'promotion'"
             v-tooltip:bottom="'Edit'">
             <FontAwesomeIcon :icon="faEdit" />
         </v-btn>
-        <v-btn class="bg-transparent" elevation="0" v-if="!isEntryEditing" @click="AddReply()"
+        <v-btn class="bg-transparent" elevation="0" v-if="!isEntryEditing && !incomingProps.maximized" @click="AddReply()"
             v-tooltip:bottom="'Reply'">
             <FontAwesomeIcon :icon="faReply" />
         </v-btn>
@@ -70,8 +74,8 @@
             </v-list>
         </v-menu>
         <v-btn class="bg-transparent" elevation="0"
-            @click="Dialog.ToggleDialog('journal', { entryData: entry, entities: incomingProps.entities })"
-            v-if="!Dialog.GetDialogActive" v-tooltip:bottom="'Expand'">
+            @click="Dialog.ToggleDialog('journal', { entryData: entry, entities: incomingProps.entities, entryDelete: () => emit('delete') })"
+            v-if="!incomingProps.maximized && !isEntryEditing" v-tooltip:bottom="'Expand'">
             <FontAwesomeIcon :icon="faExpand" />
         </v-btn>
     </div>
@@ -84,10 +88,11 @@ import { NewEntry } from '@/models';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faChevronCircleRight, faChevronCircleDown, faEdit, faEllipsis, faExpand, faReply, faHeart, faBell } from '@fortawesome/free-solid-svg-icons'
 import TLPPicker from '@/components/Pickers/TLPPicker.vue';
+import ALFPicker from '@/components/Pickers/ALFPicker.vue';
 import { useDatePipe, useTextPipe } from '@/pipes';
 import PopularityElement from '../QueueElements/PopularityElement.vue';
 
-let incomingProps = defineProps(['type', 'entry', 'entities', 'expanded', 'editing', 'isNotModal'])
+let incomingProps = defineProps(['type', 'entry', 'entities', 'expanded', 'editing', 'isNotModal', 'maximized'])
 const emit = defineEmits(['expand', 'edit', 'delete', 'reply'])
 const API_POST = usePOST_APIStore()
 const API_GET = useGET_APIStore()

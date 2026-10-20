@@ -1,8 +1,9 @@
 <template>
     <v-card @keyup.enter="AddSources()">
         <v-card-text>
-            <v-combobox :loading="loading" id="source-search-box" v-model="sourcesSelected" :items="sourcesOptions" hide-details autofocus auto-select-first
-                label="Search for an option or make new" variant="outlined" hide-selected multiple autoComplete="off" @update:search="SearchSources" :delimiters="[' ']">
+            <v-combobox :loading="loading" id="source-search-box" v-model="sourcesSelected" :no-data-text="loading ? 'Searching...' : 'No items found'" :hide-no-data="false"
+                :items="sourcesOptions" hide-details autofocus auto-select-first label="Search for an option or make new" variant="outlined" hide-selected multiple
+                autoComplete="off" @update:search="SearchSources" :delimiters="[' ']">
                 <template v-slot:selection="{ item, index }">
                     <v-chip v-if="item === Object(item)" :text="item.value" size="small" variant="flat" closable label @click:close="RemoveSource(index)"/>
                 </template>
@@ -10,6 +11,9 @@
                     <v-list-item v-bind="props" v-tooltip:bottom="item.raw.description"/>
                 </template>
             </v-combobox>
+            <div v-if="submissionError" class="text-error text-caption mt-2" role="alert">
+                {{ submissionError }}
+            </div>
         </v-card-text>
         <v-card-actions>
             <v-tooltip interactive location="left">
@@ -37,10 +41,10 @@
                 </p>
             </v-tooltip>
             <v-spacer/>
-            <v-btn @click="AddSources()" color="success" rounded="lg" elevation="1" variant="outlined">
+            <v-btn @click="AddSources()" :loading="submitLoading" :disabled="submitLoading" color="success" rounded="lg" elevation="1" variant="outlined">
                 <FontAwesomeIcon :icon="faSave" />&nbsp;Save
             </v-btn>
-            <v-btn @click="Dialog.ToggleDialog()" color="danger" rounded="lg" elevation="1" variant="outlined">
+            <v-btn @click="Dialog.ToggleDialog()" :disabled="submitLoading" color="danger" rounded="lg" elevation="1" variant="outlined">
                 <FontAwesomeIcon :icon="faTimes" />&nbsp;Close
             </v-btn>
         </v-card-actions>
@@ -48,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeUnmount, onMounted } from 'vue'
 import { useGET_APIStore, usePOST_APIStore, useDialogStore } from '@/stores'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
@@ -68,6 +72,11 @@ const loading = ref(false)
 const sourcesSelected = ref([])
 const sourcesOptions = ref([])
 const existingIds = ref([])
+const submitLoading = ref(false)
+const submissionError = ref("")
+const searchDelay = 250
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+let latestSearchId = 0
 
 onMounted(() => {
     if (incomingProps.params.existing) {
@@ -79,21 +88,47 @@ onMounted(() => {
     SearchSources()
 })
 
-async function SearchSources(v: string = null) {
+function SearchSources(searchTerm: string | null = null) {
+    const searchId = ++latestSearchId
+    if (searchTimer) {
+        clearTimeout(searchTimer)
+    }
+
     loading.value = true
-    await API_GET.GET_IRElementSources(25, v, "-link_count")
-        .then((v) => {
-            sourcesOptions.value = v.result.map((source: any) => {
-                return {title: `${source.name} (${source.link_count})`, value: source.name, description: source.description, id: source.id}
-            })
-        }).finally(() => {
-            loading.value = false
-        })
+    searchTimer = setTimeout(async () => {
+        if (searchId !== latestSearchId) {
+            return
+        }
+
+        try {
+            const response = await API_GET.GET_IRElementSources(25, searchTerm, "-link_count")
+            if (searchId === latestSearchId) {
+                sourcesOptions.value = response.result.map((source: any) => {
+                    return {title: `${source.name} (${source.link_count})`, value: source.name, description: source.description, id: source.id}
+                })
+            }
+        } finally {
+            if (searchId === latestSearchId) {
+                loading.value = false
+            }
+        }
+    }, searchDelay)
 }
 
+onBeforeUnmount(() => {
+    ++latestSearchId
+    if (searchTimer) {
+        clearTimeout(searchTimer)
+    }
+})
+
 async function AddSources() {
+    if (submitLoading.value) {
+        return
+    }
+
     const target_type = IRElementTypeSingular[incomingProps.params.targetType]
-    sourcesSelected.value.forEach(async (source: any) => {
+    const sourceData = sourcesSelected.value.reduce((sources: NewSource[], source: any) => {
         let sourceData: any = null
         if (typeof source == 'string') {
             sourceData = new NewSource(parseInt(incomingProps.params.targetId), target_type, source, "")
@@ -104,18 +139,33 @@ async function AddSources() {
             }
         }
         if (sourceData) {
-            await API_POST.POST_AddSource(sourceData)
-                .then((newSource: Source) => {
-                    if (incomingProps.params.existing) {
-                        incomingProps.params.existing.push(newSource)
-                    }
-                    else if (incomingProps.params.selectedItem?.sources) {
-                        incomingProps.params.selectedItem.sources.push(newSource)
-                    }
-                })
+            sources.push(sourceData)
         }
-    });
-    Dialog.ToggleDialog()
+        return sources
+    }, [])
+
+    submitLoading.value = true
+    submissionError.value = ""
+    try {
+        const newSources = await Promise.all(sourceData.map((source) => API_POST.POST_AddSource(source)))
+        if (newSources.some((source) => !source)) {
+            throw new Error("Unable to add one or more sources")
+        }
+
+        newSources.forEach((newSource: Source) => {
+            if (incomingProps.params.existing) {
+                incomingProps.params.existing.push(newSource)
+            }
+            else if (incomingProps.params.selectedItem?.sources) {
+                incomingProps.params.selectedItem.sources.push(newSource)
+            }
+        })
+        Dialog.ToggleDialog()
+    } catch {
+        submissionError.value = "Unable to add sources. Please try again."
+    } finally {
+        submitLoading.value = false
+    }
 }
 
 async function RemoveSource(index: number) {

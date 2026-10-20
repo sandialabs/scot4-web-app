@@ -59,7 +59,6 @@
                         :key="item['id'] + 'Row-Key'" :class="{ 'selectedRow': item.selected }">
                         <td v-for="(header, i) in tableHeaders" :key="i + item['id']" class="ps-3">
                             <span v-if="header.value == 'status' && currentRouteName == 'alertgroups'">
-                                {{ item[header.value] }}
                                 <v-chip :color="alertGroupStatusColor(item['open_count'], item['promoted_count'])"
                                         variant="flat" class="status-chip">
                                     <v-icon left>
@@ -306,11 +305,12 @@ const tableHeaders = computed(() => {
 
 async function handleFirehose({ name, store, args, after, onError }) {
     const event = args[0]
+    const eventElementTypeNoSubtype = event.element_type.split(".")[0]
     // We only want to get update events for objects in the list
     if (name == "handleEvent") {
-        if (event.what == "update" && event.element_type == IRElementTypeSingular[currentRouteName.value]) {
+        if (event.what == "update" && eventElementTypeNoSubtype == IRElementTypeSingular[currentRouteName.value]) {
             // Don't reload the item if it's our selected item, let the selected item component handle that and pass it up
-            if (!(event.element_type == IRElementTypeSingular[currentRouteName.value] && event.element_id == currentRouteID.value)) {
+            if (!(eventElementTypeNoSubtype == IRElementTypeSingular[currentRouteName.value] && event.element_id == currentRouteID.value)) {
                 const tableIdx = tableData.value.findIndex((v) => v.id == event.element_id)
                 if (tableIdx != -1) {
                     const newItem = await API_GET.GET_IRElementData(IRElementAPIPaths[currentRouteName.value], 0, 1, '-id', { id: event.element_id })
@@ -322,18 +322,19 @@ async function handleFirehose({ name, store, args, after, onError }) {
         }
         // If there's a create or delete event... we just have to re-retrieve the whole list,
         // there's not a good way to tell if it will affect the list or not
-        if (["create", "delete"].includes(event.what) && event.element_type == IRElementTypeSingular[currentRouteName.value]) {
+        if (["create", "delete"].includes(event.what) && eventElementTypeNoSubtype == IRElementTypeSingular[currentRouteName.value]) {
             await GetIRElementData({ page: page.value, itemsPerPage: itemsPerPage.value, sortBy: sortBy.value }, false)
         }
         // Reload element in list if links to it are created/deleted/updated
-        if (event.element_type == IRElementTypeSingular[IRElementType.Link]) {
+        if (eventElementTypeNoSubtype == IRElementTypeSingular[IRElementType.Link]) {
             let elementId = -1
             let otherType = null
-            if (event.v0_type == IRElementTypeSingular[currentRouteName.value]) {
+            // Don't make a firehose request if the link was to the selected item (selected element component will handle it)
+            if (event.v0_type == IRElementTypeSingular[currentRouteName.value] && event.v0_id != currentRouteID.value) {
                 elementId = event.v0_id
                 otherType = event.v1_type
             }
-            else if (event.v1_type == IRElementTypeSingular[currentRouteName.value]) {
+            else if (event.v1_type == IRElementTypeSingular[currentRouteName.value] && event.v1_id != currentRouteID.value) {
                 elementId = event.v1_id
                 otherType = event.v0_type
             }
@@ -362,7 +363,12 @@ async function onFilterInput() {
 function selectedItemReload(newItem: any) {
     const tableIdx = tableData.value.findIndex((v) => v.id == currentRouteID.value)
     if (tableIdx != -1) {
+        //update table row
         Object.assign(tableData.value[tableIdx], newItem)
+        //reload the table if any sort or filters exist
+        if (sortBy.value.length > 0 || !Object.values(searchObject).every(a => a === undefined)) {
+            GetIRElementData({ page: page.value, itemsPerPage: itemsPerPage.value, sortBy: sortBy.value }, true)
+        }
     }
 }
 

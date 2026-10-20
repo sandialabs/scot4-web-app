@@ -1,12 +1,13 @@
 <template>
 
-    <div class="journal-modal">
-        <div class="container-fluid py-1 d-flex justify-end  mb-3 ">
-            <v-btn color="danger" rounded="lg" elevation="1" variant="outlined" @click="CloseDialogAndRefresh()">
+    <div class="journal-modal d-flex flex-column">
+        <div class="container-fluid py-1 d-flex justify-end mb-2">
+            <v-btn color="danger" rounded="lg" elevation="1" variant="outlined" @click="CloseDialog">
                 <FontAwesomeIcon :icon="faTimes" />
             </v-btn>
         </div>
-        <JournalEntryCell type="entry" :data="journal" :entities="entityData" :isReply="false" />
+        <JournalEntryCell type="entry" :data="journal" :entities="entityData"
+                          @DeleteEntry="deleteEntry" :maximized="true"/>
     </div>
 </template>
 
@@ -24,8 +25,12 @@ let incomingProps = defineProps(['params'])
 let journal = reactive(incomingProps.params.entryData)
 let entityData = reactive(incomingProps.params.entities)
 
-function CloseDialogAndRefresh() {
-    Bus.ToggleReloadSelectedView()
+function CloseDialog() {
+    Dialog.ToggleDialog()
+}
+
+function deleteEntry() {
+    incomingProps.params.entryDelete()
     Dialog.ToggleDialog()
 }
 

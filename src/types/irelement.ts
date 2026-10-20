@@ -153,6 +153,17 @@ export enum TLPCode {
   red = 'red'
 }
 
+export enum ALFCode {
+  unset = "unset",
+  white = "white",
+  green = "green",
+  yellow = "yellow",
+  amber = "amber",
+  orange = "orange",
+  red = "red"
+}
+
+
 export enum EntryClassEnum {
   entry = 'entry',
   summary = 'summary',
