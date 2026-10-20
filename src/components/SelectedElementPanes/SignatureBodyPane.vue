@@ -7,14 +7,14 @@
             <div v-if="Array.isArray(sigSelected.data.signature_body)">
                 <v-list-item v-ripple="false" v-for="(body, idx) in sigSelected.data.signature_body" :key="idx">
                     <v-textarea :spellcheck="false" :readonly="sigSelected.data.external_location != null"
-                        @blur="UpdateSignatureData" auto-grow outlined @click.prevent.stop="" label="Signature Body"
+                        @blur="UpdateSignatureData(false)" auto-grow outlined @click.prevent.stop="" label="Signature Body"
                         v-model="sigSelected.data.signature_body[idx]"></v-textarea>
                 </v-list-item>
             </div>
             <div v-else>
                 <v-list-item v-ripple="false">
                     <v-textarea :spellcheck="false" :readonly="sigSelected.data.external_location != null"
-                        @blur="UpdateSignatureData" auto-grow outlined @click.prevent.stop="" label="Signature Body"
+                        @blur="UpdateSignatureData(false)" auto-grow outlined @click.prevent.stop="" label="Signature Body"
                         v-model="sigSelected.data.signature_body"></v-textarea>
                 </v-list-item>
             </div>
@@ -38,12 +38,14 @@ onMounted(() => {
     isLoading.value = false
 })
 
-async function UpdateSignatureData() {
+async function UpdateSignatureData(loader: Boolean = true) {
     if (sigSelected.value) {
         const updateData = {
             data: sigSelected.value.data
         }
-        isLoading.value = true
+        if (loader) {
+            isLoading.value = true
+        }
         await API_PUT.UpdateElementById("/signature", sigSelected.value.id, updateData)
             .then((v: any) => {
                 isLoading.value = false
@@ -54,7 +56,7 @@ async function UpdateSignatureData() {
 
 <style scoped>
 .scrollable-pane {
-    max-height: 400px;
+    max-height: 100%;
     overflow-y: auto;
 }
 </style>

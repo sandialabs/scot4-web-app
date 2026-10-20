@@ -1,10 +1,11 @@
-import { EntryClassEnum, IRElementType, TLPCode } from "@/types/irelement"
+import { EntryClassEnum, IRElementType, TLPCode, ALFCode } from "@/types/irelement"
 
 
 export class Entry {
     id: number;
     owner: string;
     tlp: TLPCode;
+    alf: ALFCode;
     parent_entry_id: number;
     target_type: IRElementType;
     target_id: number;
@@ -26,6 +27,7 @@ export class Entry {
         id: number,
         owner: string,
         tlp: TLPCode,
+        alf: ALFCode,
         parent_entry_id: number,
         target_type: IRElementType,
         target_id: number,

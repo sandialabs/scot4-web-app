@@ -7,11 +7,24 @@
         <v-card-text>
             <v-tabs-window v-model="tab">
                 <v-tabs-window-item value="view">
-                    <div v-html="readAuditDisplay(historyDataView)"></div>
+                    <table>
+                        <tbody>
+                            <template v-for="(audits, user) in byUser" :key="user">
+                                <tr>
+                                    <td class="pr-2"><b>{{ user }}</b></td>
+                                    <td>Earliest: {{ DatePipe.ConvertDate(audits.at(0).when_date) }} from IP {{ audits.at(0).src_ip }}</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Latest: {{ DatePipe.ConvertDate(audits.at(-1).when_date) }} from IP {{ audits.at(-1).src_ip }}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
                 </v-tabs-window-item>
                 <v-tabs-window-item value="edit">
-                    <div v-for="item in historyDataEdit" :key="item.id"
-                        v-html="auditEntryDisplay(item)">
+                    <div v-for="item in historyDataEdit" :key="item.id">
+                        {{ DatePipe.ConvertDate(item.when_date) }} <b>{{ item.username }}</b> {{ auditEntryDisplay(item) }}
                     </div>
                 </v-tabs-window-item>
             </v-tabs-window>
@@ -27,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useDatePipe } from '../../pipes/date'
 import { useDialogStore, useGET_APIStore } from '@/stores'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -45,6 +58,16 @@ let historyDataView = ref([])
 let isLoading = ref(true)
 let tab = ref("view")
 let incomingProps = defineProps(['params'])
+
+const byUser = computed(() => historyDataView.value.reduce((userDict: any, audit: any) => {
+    if (audit.username && audit.username in userDict) {
+        userDict[audit.username].push(audit)
+    }
+    else if (audit.username) {
+        userDict[audit.username] = [audit]
+    }
+    return userDict
+}, {}))
 
 onMounted(() => {
     GetHistoryData(incomingProps.params.targetType, incomingProps.params.targetId)
@@ -80,29 +103,29 @@ async function GetHistoryData(targetType, targetId) {
 
 function auditEntryDisplay(audit: any) {
     if (audit.what == 'read') {
-        return `${DatePipe.ConvertDate(audit.when_date)} <b>${audit.username}</b> from IP ${audit.src_ip}`
+        return `from IP ${audit.src_ip}`
     }
     if (audit.what == 'update') {
-        let finalDisplay = `${DatePipe.ConvertDate(audit.when_date)} `
+        let finalDisplay = ''
         if (audit.thing_type == 'alert' || audit.thing_type == 'entry') {
             if (Object.keys(audit.audit_data).length == 1 && audit.audit_data.status) {
                 if (audit.audit_data.status == 'closed') {
-                    finalDisplay += `<b>${audit.username}</b> closed ${audit.thing_type} ${audit.thing_id}`
+                    finalDisplay += `closed ${audit.thing_type} ${audit.thing_id}`
                 }
                 if (audit.audit_data.status == 'promoted') {
-                    finalDisplay += `<b>${audit.username}</b> promoted ${audit.thing_type} ${audit.thing_id}`
+                    finalDisplay += `promoted ${audit.thing_type} ${audit.thing_id}`
                 }
                 if (audit.audit_data.status == 'open') {
-                    finalDisplay += `<b>${audit.username}</b> reopened ${audit.thing_type} ${audit.thing_id}`
+                    finalDisplay += `reopened ${audit.thing_type} ${audit.thing_id}`
                 }
             }
             else {
-                finalDisplay += `<b>${audit.username}</b> updated ${audit.thing_type} ${audit.thing_id}`
+                finalDisplay += `updated ${audit.thing_type} ${audit.thing_id}`
             }
         }
         else if (audit.audit_data) {
             for (const key in audit.audit_data) {
-                finalDisplay += `<b>${audit.username}</b> changed ${key} to ${JSON.stringify(audit.audit_data[key])}`
+                finalDisplay += `changed ${key} to ${JSON.stringify(audit.audit_data[key])}`
             }
         }
         else {
@@ -111,32 +134,12 @@ function auditEntryDisplay(audit: any) {
         return finalDisplay
     }
     if (audit.what == 'create') {
-        return `${DatePipe.ConvertDate(audit.when_date)} <b>${audit.username}</b> created ${audit.thing_type} ${audit.thing_id}`
+        return `created ${audit.thing_type} ${audit.thing_id}`
     }
     if (audit.what == 'delete') {
-        return `${DatePipe.ConvertDate(audit.when_date)} <b>${audit.username}</b> deleted ${audit.thing_type} ${audit.thing_id}`
+        return `deleted ${audit.thing_type} ${audit.thing_id}`
     }
     return 'NO FORMAT'
 }
 
-function readAuditDisplay(audits: Array<any>) {
-    const byUser = audits.reduce((userDict: any, audit: any) => {
-        if (audit.username && audit.username in userDict) {
-            userDict[audit.username].push(audit)
-        }
-        else if (audit.username) {
-            userDict[audit.username] = [audit]
-        }
-        return userDict
-    }, {})
-    var result = '<table>'
-    for (const user in byUser) {
-        const earliestAudit = byUser[user].at(0)
-        const latestAudit = byUser[user].at(-1)
-        result += `<tr><td class="pr-2"><b>${user}</b></td><td>Earliest: ${DatePipe.ConvertDate(earliestAudit.when_date)} from IP ${earliestAudit.src_ip}</td></tr>`
-        result += `<tr><td></td><td>Latest: ${DatePipe.ConvertDate(latestAudit.when_date)} from IP ${latestAudit.src_ip}</td></tr>`
-    }
-    result += '</table>'
-    return result
-}
 </script>

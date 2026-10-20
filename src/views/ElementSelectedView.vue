@@ -1,9 +1,10 @@
 <template>
     <div class="bottom-sheet-wrapper" v-if="Panes.GetPanesActive && !isLoading">
         <div class="bottom-sheet-top-wrapper flex-grow-0">
-            <div class="d-flex flex-column mb-2 mr-2" style="flex: 0;">
-                <b class="my-2 pl-2">{{ selectedItem.id }}</b>
+            <div class="d-flex flex-column mr-2" style="flex: 0;">
+                <b class="mt-2 mb-1 pl-2">{{ selectedItem.id }}</b>
                 <TLPPicker v-if="selectedItem.hasOwnProperty('tlp')" :data=selectedItem.tlp :targetType="currentRouteName" :targetId="parseInt(currentRouteId)" :entryIds="entryIds" :obj="selectedItem" />
+                <ALFPicker v-if="selectedItem.hasOwnProperty('alf')" :data=selectedItem.alf :targetType="currentRouteName" :targetId="parseInt(currentRouteId)" :entryIds="entryIds" :obj="selectedItem" />
             </div>
             <div class="px-2 d-flex" style="max-width: 75%;">
                 <v-btn v-if="subjectFieldName" variant="outlined" v-tooltip:bottom="'Edit Subject'"
@@ -118,7 +119,7 @@
             </v-tab>
         </v-tabs>
         <v-progress-linear indeterminate v-if="isFlairLoading" color="primary"></v-progress-linear>
-        <div class="d-flex justify-content-evenly" style="min-height: 0">
+        <div class="d-flex justify-content-evenly flex-grow-1" style="min-height: 0">
             <Splitpanes class="default-theme">
                 <Pane v-for="pane in selectedIRElementPanes" :key="pane" class="scroll-pane">
                     <keep-alive>
@@ -148,6 +149,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faEdit, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { Splitpanes, Pane } from 'splitpanes'
 import TLPPicker from '@/components/Pickers/TLPPicker.vue'
+import ALFPicker from '@/components/Pickers/ALFPicker.vue'
 import ToolbarElement from '@/components/SelectedElements/ToolbarElement.vue'
 import { isAxiosError } from 'axios'
 
@@ -234,40 +236,46 @@ function HandleRoute() {
 
 let firehoseInProgress = new Set()
 async function handleFirehose({ name, store, args, after, onError }) {
-    const event = args[0]
-    // Short random delay to ease instantaneous load on the API and filter out duplicate reloads
-    // Note that this delays the actual execution of the firehose action, but that's okay
-    if (firehoseInProgress.has(event.what + "|" + event.element_type + "|" + event.element_id)) {
-        return
-    }
-    firehoseInProgress.add(event.what + "|" + event.element_type + "|" + event.element_id)
-    await new Promise(r => setTimeout(r, 500 + Math.random() * 1500))
-    firehoseInProgress.delete(event.what + "|" + event.element_type + "|" + event.element_id)
-    // We only want to get update events for this specific object
-    if (name == "handleEvent" && event.what == "update" && event.element_type == IRElementTypeSingular[currentRouteName.value] && event.element_id == currentRouteId.value) {
-        const newItem = await API_GET.GET_IRElementData(IRElementAPIPaths[currentRouteName.value], 0, 1, '-id', { id: currentRouteId.value })
-        if (newItem?.result && newItem.result.length > 0){
-            Object.assign(selectedItem, newItem.result[0])
-            emit('SelectedItemReload', newItem.result[0])
+    if (name == "handleEvent") {
+        const event = args[0]
+        // Short random delay to ease instantaneous load on the API and filter out duplicate reloads
+        // Note that this delays the actual execution of the firehose action, but that's okay
+        if (firehoseInProgress.has(event.what + "|" + event.element_type + "|" + event.element_id)) {
+            return
         }
-    }
-    // Reload element if links to it are created/deleted/updated
-    if (event.element_type == IRElementTypeSingular[IRElementType.Link]) {
-        let elementId = -1
-        let otherType = null
-        if (event.v0_type == IRElementTypeSingular[currentRouteName.value]) {
-            elementId = event.v0_id
-            otherType = event.v1_type
+        firehoseInProgress.add(event.what + "|" + event.element_type + "|" + event.element_id)
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 1500))
+        firehoseInProgress.delete(event.what + "|" + event.element_type + "|" + event.element_id)
+        const eventElementTypeNoSubtype = event.element_type.split(".")[0]
+        // We only want to get update events for this specific object
+        if (event.what == "update" && eventElementTypeNoSubtype == IRElementTypeSingular[currentRouteName.value] && event.element_id == currentRouteId.value) {
+            const newItem = await API_GET.GET_IRElementData(IRElementAPIPaths[currentRouteName.value], 0, 1, '-id', { id: currentRouteId.value })
+            if (newItem?.result && newItem.result.length > 0) {
+                Object.assign(selectedItem, newItem.result[0])
+                emit('SelectedItemReload', newItem.result[0])
+            }
         }
-        else if (event.v1_type == IRElementTypeSingular[currentRouteName.value]) {
-            elementId = event.v1_id
-            otherType = event.v1_type
-        }
-        // Don't reload only for entity links
-        if (elementId == currentRouteId.value && otherType != "entity") {
-            const newItem = await API_GET.GET_IRElementDataSelected(IRElementAPIPaths[currentRouteName.value], currentRouteId.value)
-            Object.assign(selectedItem, newItem)
-            emit('SelectedItemReload', newItem)
+        // Reload element if links to it are created/deleted/updated
+        if (event.what != 'read' && event.element_type == IRElementTypeSingular[IRElementType.Link]) {
+
+            let elementId = -1
+            let otherType = null
+            if (event.v0_type == IRElementTypeSingular[currentRouteName.value]) {
+                elementId = event.v0_id
+                otherType = event.v1_type
+            }
+            else if (event.v1_type == IRElementTypeSingular[currentRouteName.value]) {
+                elementId = event.v1_id
+                otherType = event.v1_type
+            }
+            // Don't reload only for entity links
+            if (elementId == currentRouteId.value && otherType != "entity") {
+                const newItem = await API_GET.GET_IRElementData(IRElementAPIPaths[currentRouteName.value], 0, 1, '-id', { id: currentRouteId.value })
+                if (newItem?.result && newItem.result.length > 0) {
+                    Object.assign(selectedItem, newItem.result[0])
+                    emit('SelectedItemReload', newItem.result[0])
+                }
+            }
         }
     }
 }
@@ -320,13 +328,13 @@ function CreateEntry(entry: any) {
     newEntry.value = entry
 }
 
-function RefreshElement(refreshElement: any) {
+async function RefreshElement(refreshElement: any) {
     if (refreshElement === true) {
-        GetIRElementDataSelected(currentRouteName.value, currentRouteId.value)
+        await GetIRElementDataSelected(currentRouteName.value, currentRouteId.value)
         emit('SelectedItemReload', selectedItem)
     }
     else if (refreshElement === false) {
-        GetIRElementDataSelected(currentRouteName.value, currentRouteId.value, false)
+        await GetIRElementDataSelected(currentRouteName.value, currentRouteId.value, false)
         emit('SelectedItemReload', selectedItem)
     }
     else if (refreshElement) {
@@ -381,7 +389,7 @@ async function GetIRElementEntity() {
 }
 
 function ownerChoices() {
-    if (selectedItem.owner == Auth.GetUser.username) {
+    if (selectedItem.owner == Auth.GetUser?.username) {
         return []
     }
     else {

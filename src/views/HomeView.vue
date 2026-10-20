@@ -31,6 +31,9 @@
                   <v-chip>{{ count }}</v-chip>
                 </span>
               </v-list-item>
+              <v-list-item dense class="game-list-item" v-if="Object.keys(result.results).length == 0">
+                <span class="text-center">No results yet</span>
+              </v-list-item>
             </v-list>
           </v-carousel-item>
         </v-carousel>
@@ -42,9 +45,7 @@
   <LoadingApplication v-else />
 </template>
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref, computed } from 'vue';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faUser, faGear, faKey, faClipboard, faTasks } from '@fortawesome/free-solid-svg-icons'
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useGET_APIStore } from '@/stores';
 import LoadingApplication from '@/components/Loaders/LoadingApplication.vue';
 import LoadingSingleLine from '@/components/Loaders/LoadingSingleLine.vue';

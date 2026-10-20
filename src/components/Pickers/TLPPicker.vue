@@ -1,7 +1,7 @@
 <template>
     <v-menu class="flex-fill mx-2">
         <template v-slot:activator="{ props }">
-            <v-btn size="x-small" v-bind="props" variant="plain" density="compact" style="max-width: 68px; font-size: 10px; padding-bottom: 0px !important; padding-top: 0px !important;">
+            <v-btn size="x-small" v-bind="props" variant="plain" style="max-width: 68px; font-size: 10px; padding-bottom: 0px !important; padding-top: 0px !important;">
                 <svg style="width: 12px; height: 12px;">
                     <circle v-if="tlpData == 'red'" r="5" cx="6" cy="6"
                         style="fill: red; stroke: black; stroke-width: 2px;"></circle>

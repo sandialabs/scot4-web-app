@@ -24,14 +24,13 @@
 <script setup lang="ts">
 
 import { onMounted, ref } from 'vue';
-import { useAuth_APIStore, useAuthStore, useSnackBarStore } from '@/stores';
+import { useAuth_APIStore, useSnackBarStore } from '@/stores';
 import { useStorage } from '@/storage/storage'
 import { useRouter } from 'vue-router';
 import { AuthLocalLogin } from '@/models';
 import LoadingApplication from '@/components/Loaders/LoadingApplication.vue';
 
 const AUTH_API = useAuth_APIStore()
-const USER_API = useAuthStore()
 const Storage = useStorage()
 const Router = useRouter()
 const SnackBar = useSnackBarStore()
@@ -63,6 +62,7 @@ onMounted(async () => {
             else {
                 await Router.replace('/')
             }
+            await Storage.setItem('accessToken', res.access_token)
             await SetLoginExpire(ParseExpireDate(res.access_token))
         }
         catch (error) {
@@ -85,8 +85,9 @@ function ParseExpireDate(access_token: string) {
 function LoginLocal() {
     isLoading.value = true
     AUTH_API.Auth_LocalUser(new AuthLocalLogin(username.value, password.value))
-        .then((v) => {
-            SetLoginExpire(ParseExpireDate(v.access_token))
+        .then(async (v) => {
+            await Storage.setItem('accessToken', v.access_token)
+            return SetLoginExpire(ParseExpireDate(v.access_token))
         })
         .catch((error) => {
             SnackBar.ShowSnackBarError(error)

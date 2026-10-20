@@ -644,7 +644,8 @@ export const useGET_APIStore = defineStore('get_api', () => {
         num_top_users: number = 3,
         exclude_users: Array<string> | undefined = undefined): Promise<any> {
         const path = '/game/results'
-        const sixMonthsAgo = new Date().setMonth(new Date().getMonth() - 6)
+        const sixMonthsAgo = new Date()
+        sixMonthsAgo.setMonth(new Date().getMonth() - 6)
         const dates = date_range ? date_range : [sixMonthsAgo]
         return axios
             .get(`${env.APIHost}` + path, {
@@ -653,6 +654,9 @@ export const useGET_APIStore = defineStore('get_api', () => {
                     dates: dates,
                     num_top_users: num_top_users,
                     exclude_users: exclude_users
+                },
+                paramsSerializer: {
+                    indexes: null
                 },
             })
             .then(function (response) {

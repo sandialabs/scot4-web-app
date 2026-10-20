@@ -138,19 +138,26 @@ function nestJournalEntries(entries: any[]): any[] {
 async function handleFirehose({ name, store, args, after, onError }) {
     const event = args[0]
     // We only want to get events for entries that are in this journal
-    if (name == "handleEvent" && event.element_type == "entry" && event.target_type == IRElementTypeSingular[incomingProps.targetType] && event.target_id == incomingProps.targetId) {
+    if (name == "handleEvent" && event.element_type == "entry" ) {
         if (event.what == "create" && !journalData.map(e => e.id).includes(event.element_id)) {
-            const newEntry = await API_GET.GET_IRElementDataSelected(IRElementAPIPaths[IRElementType.Entry], event.element_id)
-            const newEntities = await API_GET.GET_IRElementEntity(IRElementAPIPaths[IRElementType.Entry], event.element_id)
-            const oldEntityIds = incomingProps.entities.result?.map(e => e.id)
-            if (oldEntityIds != undefined) {
-                for (const entity of newEntities.result) {
-                    if (!(entity.id in oldEntityIds)) {
-                        incomingProps.entities.result.push(entity)
+            if (event.target_type == IRElementTypeSingular[incomingProps.targetType] &&
+                event.target_id == incomingProps.targetId 
+            ) {
+                const newEntry = await API_GET.GET_IRElementDataSelected(IRElementAPIPaths[IRElementType.Entry], event.element_id)
+                const newEntities = await API_GET.GET_IRElementEntity(IRElementAPIPaths[IRElementType.Entry], event.element_id)
+                const oldEntityIds = incomingProps.entities.result?.map(e => e.id)
+                if (oldEntityIds != undefined) {
+                    for (const entity of newEntities.result) {
+                        if (!(entity.id in oldEntityIds)) {
+                            incomingProps.entities.result.push(entity)
+                        }
                     }
                 }
+                if (!journalData.map(e => e.id).includes(event.element_id)) {
+                    journalData.push(newEntry)
+                }
+                
             }
-            journalData.push(newEntry)
         }
         else if (event.what == "delete") {
             const entryIdx = journalData.findIndex((e) => e.id == event.element_id)

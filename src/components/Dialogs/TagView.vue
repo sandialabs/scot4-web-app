@@ -1,7 +1,7 @@
 <template>
     <v-card @keyup.shift.enter="AddTags()">
         <v-card-text>
-            <v-combobox :loading="loading" id="tag-search-box" v-model="tagsSelected" autofocus auto-select-first :items="tagsOptions" hide-details label="Search for an option or make new" variant="outlined" hide-selected multiple autoComplete="off" @update:search="SearchTags" :delimiters="[' ']">
+            <v-combobox :loading="loading" id="tag-search-box" v-model="tagsSelected" :no-data-text="loading ? 'Searching...' : 'No items found'" :hide-no-data="false" autofocus auto-select-first :items="tagsOptions" hide-details label="Search for an option or make new" variant="outlined" hide-selected multiple autoComplete="off" @update:search="SearchTags" :delimiters="[' ']">
                 <template v-slot:selection="{ item, index }">
                     <v-chip v-if="item === Object(item)" :text="item.value" size="small" variant="flat" closable label
                         @click:close="RemoveTag(index)"/>
@@ -10,6 +10,9 @@
                     <v-list-item v-bind="props" v-tooltip:bottom="item.raw.description"/>
                 </template>
             </v-combobox>
+            <div v-if="submissionError" class="text-error text-caption mt-2" role="alert">
+                {{ submissionError }}
+            </div>
         </v-card-text>
         <v-card-actions>
             <v-tooltip interactive location="left">
@@ -37,10 +40,10 @@
                 </p>
             </v-tooltip>
             <v-spacer/>
-            <v-btn @click="AddTags()" color="success" rounded="lg" elevation="1" variant="outlined">
+            <v-btn @click="AddTags()" :loading="submitLoading" :disabled="submitLoading" color="success" rounded="lg" elevation="1" variant="outlined">
                 <FontAwesomeIcon :icon="faSave" />&nbsp;Save
             </v-btn>
-            <v-btn @click="Dialog.ToggleDialog()" color="danger" rounded="lg" elevation="1" variant="outlined">
+            <v-btn @click="Dialog.ToggleDialog()" :disabled="submitLoading" color="danger" rounded="lg" elevation="1" variant="outlined">
                 <FontAwesomeIcon :icon="faTimes" />&nbsp;Close
             </v-btn>
         </v-card-actions>
@@ -48,19 +51,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onBeforeUnmount, onMounted } from 'vue'
 import { useGET_APIStore, usePOST_APIStore, useDialogStore, } from '@/stores'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
 import { NewTag } from '@/models';
 import type { Tag } from '@/types/irelement';
-import { useTextPipe } from '@/pipes';
 import {IRElementTypeSingular} from '@/types/irelement';
 
 const Dialog = useDialogStore()
 const API_GET = useGET_APIStore()
 const API_POST = usePOST_APIStore()
-const textPipe = useTextPipe()
 
 const incomingProps = defineProps(['params'])
 const emit = defineEmits(['RefreshQueueView', 'RefreshSelectedView'])
@@ -68,6 +69,11 @@ const loading = ref(false)
 const tagsSelected = ref([])
 const tagsOptions = ref([])
 const existingIds = ref([])
+const submitLoading = ref(false)
+const submissionError = ref("")
+const searchDelay = 250
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+let latestSearchId = 0
 
 onMounted(() => {
     if (incomingProps.params.existing) {
@@ -79,21 +85,47 @@ onMounted(() => {
     SearchTags()
 })
 
-async function SearchTags(v: any = null) {
+function SearchTags(searchTerm: string | null = null) {
+    const searchId = ++latestSearchId
+    if (searchTimer) {
+        clearTimeout(searchTimer)
+    }
     loading.value = true
-    await API_GET.GET_SearchTags(v, null, 25, "-link_count")
-        .then((v) => {
-            tagsOptions.value = v.result.map((tag: any) => {
-                return {title: `${tag.name} (${tag.link_count})`, value: tag.name, description: tag.description, id: tag.id}
-            })
-        }).finally(() => {
-            loading.value = false
-        })
+
+    searchTimer = setTimeout(async () => {
+        if (searchId !== latestSearchId) {
+            return
+        }
+
+        try {
+            const response = await API_GET.GET_SearchTags(searchTerm, null, 25, "-link_count")
+            if (searchId === latestSearchId) {
+                tagsOptions.value = response.result.map((tag: any) => {
+                    return {title: `${tag.name} (${tag.link_count})`, value: tag.name, description: tag.description, id: tag.id}
+                })
+            }
+        } finally {
+            if (searchId === latestSearchId) {
+                loading.value = false
+            }
+        }
+    }, searchDelay)
 }
 
+onBeforeUnmount(() => {
+    ++latestSearchId
+    if (searchTimer) {
+        clearTimeout(searchTimer)
+    }
+})
+
 async function AddTags() {
+    if (submitLoading.value) {
+        return
+    }
+
     const target_type = IRElementTypeSingular[incomingProps.params.targetType]
-    tagsSelected.value.forEach(async (tag: any) => {
+    const tagData = tagsSelected.value.reduce((tags: NewTag[], tag: any) => {
         let tagData: any = null
         if (typeof tag == 'string') {
             tagData = new NewTag(parseInt(incomingProps.params.targetId), target_type, tag, "")
@@ -104,18 +136,33 @@ async function AddTags() {
             }
         }
         if (tagData) {
-            await API_POST.POST_AddTag(tagData)
-                .then((newTag: Tag) => {
-                    if (incomingProps.params.existing) {
-                        incomingProps.params.existing.push(newTag)
-                    }
-                    if (incomingProps.params.selectedItem?.tags) {
-                        incomingProps.params.selectedItem.tags.push(newTag)
-                    }
-                })
+            tags.push(tagData)
         }
-    });
-    Dialog.ToggleDialog()
+        return tags
+    }, [])
+
+    submitLoading.value = true
+    submissionError.value = ""
+    try {
+        const newTags = await Promise.all(tagData.map((tag) => API_POST.POST_AddTag(tag)))
+        if (newTags.some((tag) => !tag)) {
+            throw new Error("Unable to add one or more tags")
+        }
+
+        newTags.forEach((newTag: Tag) => {
+            if (incomingProps.params.existing) {
+                incomingProps.params.existing.push(newTag)
+            }
+            if (incomingProps.params.selectedItem?.tags) {
+                incomingProps.params.selectedItem.tags.push(newTag)
+            }
+        })
+        Dialog.ToggleDialog()
+    } catch {
+        submissionError.value = "Unable to add tags. Please try again."
+    } finally {
+        submitLoading.value = false
+    }
 }
 
 function RemoveTag(index: number) {
